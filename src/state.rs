@@ -16,6 +16,11 @@ use crate::{
 	widget::is_parent_open,
 };
 
+/// The distance to preview instead of always having the last displayed element be the selected one.
+///
+/// Note that this distance is reduced when there is not enough area to display.
+const PREVIEW_DISTANCE: usize = 2;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub(crate) struct Offset {
 	// Horizontal offset
@@ -136,8 +141,8 @@ where
 
 		let old_offset = self.display_offset.get_vertical();
 
-		if old_offset + height_as_usize < node_offset {
-			self.display_offset.set_vertical(node_offset - height_as_usize);
+		if (old_offset + height_as_usize).saturating_sub(PREVIEW_DISTANCE) < node_offset {
+			self.display_offset.set_vertical(old_offset + 1);
 		}
 	}
 
@@ -147,7 +152,7 @@ where
 	fn set_vert_offset_up(&mut self, node_offset: usize) {
 		let old_offset = self.display_offset.get_vertical();
 
-		if old_offset > node_offset {
+		if old_offset > node_offset.saturating_sub(PREVIEW_DISTANCE) {
 			self.display_offset.set_vertical(old_offset.saturating_sub(1));
 		}
 	}

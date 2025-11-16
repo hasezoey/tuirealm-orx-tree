@@ -127,20 +127,28 @@ where
 		return &mut self.display_offset;
 	}
 
-	/// Calculate & set the offset, minus the draw area for less jumping.
-	fn set_vert_offset_minus_area(&mut self, offset: usize) {
+	/// Calculate & set the display offset for downwards motion.
+	///
+	/// This does not change display offset if the new `node_offset` still fits within the curren display offset + height.
+	fn set_vert_offset_down(&mut self, node_offset: usize) {
 		let area = self.last_tree_size.unwrap_or_default();
 		let height_as_usize = usize::from(area.height.saturating_sub(1));
 
-		debug!(
-			"what {:#?}",
-			(offset, height_as_usize, offset.saturating_sub(height_as_usize))
-		);
+		let old_offset = self.display_offset.get_vertical();
 
-		if height_as_usize <= offset {
-			self.display_offset.set_vertical(offset - height_as_usize);
-		} else {
-			self.display_offset.set_vertical(0);
+		if old_offset + height_as_usize < node_offset {
+			self.display_offset.set_vertical(node_offset - height_as_usize);
+		}
+	}
+
+	/// Calculate & set the display offset for upwards motion.
+	///
+	/// This does not change display offset if the new `node_offset` still fits within the curren display offset.
+	fn set_vert_offset_up(&mut self, node_offset: usize) {
+		let old_offset = self.display_offset.get_vertical();
+
+		if old_offset > node_offset {
+			self.display_offset.set_vertical(old_offset.saturating_sub(1));
 		}
 	}
 
@@ -152,7 +160,7 @@ where
 
 		match next.as_ref().and_then(|v| return self.get_offset_of_node(tree, v)) {
 			Some(offset) => {
-				self.set_vert_offset_minus_area(offset);
+				self.set_vert_offset_down(offset);
 			},
 			None => self.display_offset.reset(),
 		}
@@ -168,7 +176,7 @@ where
 
 		match next.as_ref().and_then(|v| return self.get_offset_of_node(tree, v)) {
 			Some(offset) => {
-				self.set_vert_offset_minus_area(offset);
+				self.set_vert_offset_up(offset);
 			},
 			None => self.display_offset.reset(),
 		}
@@ -192,7 +200,7 @@ where
 
 		match next.as_ref().and_then(|v| return self.get_offset_of_node(tree, v)) {
 			Some(offset) => {
-				self.set_vert_offset_minus_area(offset);
+				self.set_vert_offset_down(offset);
 			},
 			None => self.display_offset.reset(),
 		}

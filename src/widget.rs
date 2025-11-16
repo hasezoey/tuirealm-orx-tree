@@ -148,7 +148,7 @@ where
 			// which we want to treat as if it had a parent and that parent is open.
 
 			// dont render if the parent is not opened
-			if !is_parent_open(&node, state) {
+			if !is_parent_open(node.clone(), state) {
 				continue;
 			}
 
@@ -211,11 +211,22 @@ where
 /// Get wheter the parent of the current node is open or not.
 /// Root node will always count as having a open parent.
 #[inline]
-pub(crate) fn is_parent_open<V>(node: &Node<'_, V>, state: &TreeViewState<V>) -> bool
+pub(crate) fn is_parent_open<V>(node: Node<'_, V>, state: &TreeViewState<V>) -> bool
 where
 	V: NodeValue,
 {
-	// the only time this can return none, is when the current node is the root node
-	// which we want to treat as if it had a parent and that parent is open.
-	return node.parent().is_none_or(|v| return state.is_opened(&v.idx()));
+	// we only want to check the parent and up of the given node
+	let mut to_check = node.parent();
+
+	// if the input node already does not have a parent (`to_check = None`), use base case "true"
+	// because that is the root node, which we always want to display
+	while let Some(node) = to_check {
+		if state.is_opened(&node.idx()) {
+			to_check = node.parent();
+		} else {
+			return false;
+		}
+	}
+
+	return true;
 }

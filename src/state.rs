@@ -4,7 +4,6 @@ use orx_tree::{
 	Traverser,
 	traversal::OverNode,
 };
-use tuirealm::ratatui::layout::Rect;
 
 use crate::{
 	types::{
@@ -293,7 +292,7 @@ where
 		let mut positon = None;
 
 		for node in walker {
-			if !is_parent_open(&node, self) {
+			if !is_parent_open(node.clone(), self) {
 				continue;
 			}
 

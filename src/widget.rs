@@ -44,6 +44,7 @@ pub const DEFAULT_INDENT: usize = 2;
 ///
 /// Likely not what you want to use.
 #[derive(Debug, Clone)]
+#[must_use]
 pub struct TreeWidget<'a, V: NodeValue> {
 	/// The tree to render
 	tree: &'a Tree<V>,

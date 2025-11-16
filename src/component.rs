@@ -45,6 +45,7 @@ pub const CMD_PG_UP: &str = "cmd-pg-down";
 pub const CMD_PG_DOWN: &str = "cmd-pg-up";
 
 #[derive(Debug, Clone)]
+#[must_use]
 pub struct TreeView<V: NodeValue> {
 	props: Props,
 	tree:  Tree<V>,

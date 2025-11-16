@@ -58,7 +58,7 @@ impl Offset {
 
 	/// Get the current vertical value.
 	pub fn get_vertical(&self) -> usize {
-		return self.y
+		return self.y;
 	}
 }
 
@@ -128,6 +128,7 @@ where
 	}
 
 	/// Get the offset mutably.
+	#[expect(dead_code)]
 	pub(crate) fn get_offset_mut(&mut self) -> &mut Offset {
 		return &mut self.display_offset;
 	}

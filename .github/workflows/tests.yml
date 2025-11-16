@@ -1,0 +1,62 @@
+name: Rust Tests
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+    inputs:
+      git-ref:
+        description: Git Ref (Optional)
+        required: false
+
+jobs:
+  # Check rustfmt
+  rustfmt:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: nightly
+          components: rustfmt
+      - run: sh ./fmt.sh
+
+  # Check clippy.  This doesn't check ARM though.
+  clippy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          components: clippy
+      - run: cargo clippy --all-features
+
+  tests:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        toolchain: [stable, nightly, "1.85"]
+    steps:
+      - uses: actions/checkout@v4
+        if: github.event.inputs.git-ref == ''
+      - uses: actions/checkout@v4
+        if: github.event.inputs.git-ref != ''
+        with:
+          ref: ${{ github.event.inputs.git-ref }}
+      - name: Install dev dependencies
+        # This seemingly worked without this in 2024, but not in 2025 CI
+        run: sudo apt update && sudo apt install libsqlite3-dev
+      - name: Install Toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ matrix.toolchain }}
+      - name: Run syntax check
+        run: cargo build --workspace --all-features
+      - name: Tests
+        run: cargo test --workspace --all-features --no-fail-fast
+        env:
+          RUST_BACKTRACE: full

@@ -1,0 +1,43 @@
+[package]
+name = "tuirealm-orx-tree"
+version = "0.1.0"
+authors = ["hasezoey <hasezoey@gmail.com>"]
+edition = "2024"
+license = "MIT"
+rust-version = "1.85"
+repository = "https://github.com/hasezoey/tuirealm-orx-tree"
+description = "Tree Component for TUIRealm with orx-tree"
+readme = "README.md"
+
+[dependencies]
+tuirealm = { version = "3.2.0", default-features = false, features = [
+	"derive",
+] }
+orx-tree = "1.9"
+
+[dev-dependencies]
+
+[features]
+
+[lints.clippy]
+correctness = { level = "deny", priority = -1 }
+style = { level = "warn", priority = -1 }
+complexity = { level = "warn", priority = -1 }
+perf = { level = "warn", priority = -1 }
+needless_return = "allow"
+implicit_return = "deny"
+needless_doctest_main = "allow"
+tabs_in_doc_comments = "allow"
+wildcard_imports = "warn"
+semicolon_if_nothing_returned = "warn"
+default_trait_access = "warn"
+manual_assert = "warn"
+map_unwrap_or = "warn"
+ignored_unit_patterns = "warn"
+manual_let_else = "warn"
+single_match_else = "warn"
+if_not_else = "warn"
+manual_string_new = "warn"
+used_underscore_binding = "warn"
+return_self_not_must_use = "warn"
+inefficient_to_string = "warn"

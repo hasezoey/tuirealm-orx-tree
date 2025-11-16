@@ -16,6 +16,7 @@ use tui_realm_stdlib::{
 use tuirealm::command::{
 	Cmd,
 	Direction,
+	Position,
 };
 use tuirealm::event::{
 	Key,
@@ -156,15 +157,14 @@ impl Component<Msg, UserEvents> for FileSystemTree {
 			// 	code: Key::PageUp,
 			// 	modifiers: KeyModifiers::NONE,
 			// }) => self.perform(Cmd::Custom(CMD_PG_UP)),
-
-			// Event::Keyboard(KeyEvent {
-			// 	code: Key::Home,
-			// 	modifiers: KeyModifiers::NONE,
-			// }) => self.perform(Cmd::GoTo(Position::Begin)),
-			// Event::Keyboard(KeyEvent {
-			// 	code: Key::End,
-			// 	modifiers: KeyModifiers::NONE,
-			// }) => self.perform(Cmd::GoTo(Position::End)),
+			Event::Keyboard(KeyEvent {
+				code: Key::Home,
+				modifiers: KeyModifiers::NONE,
+			}) => self.perform(Cmd::GoTo(Position::Begin)),
+			Event::Keyboard(KeyEvent {
+				code: Key::End,
+				modifiers: KeyModifiers::NONE,
+			}) => self.perform(Cmd::GoTo(Position::End)),
 
 			// scroll
 			// Event::Keyboard(KeyEvent {

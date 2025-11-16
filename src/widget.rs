@@ -204,8 +204,5 @@ where
 			remaining_area.height = remaining_area.height.saturating_sub(1);
 			remaining_area.y += 1;
 		}
-
-		// TODO: REMOVE THIS BEFORE RELEASE
-		debug!("done");
 	}
 }

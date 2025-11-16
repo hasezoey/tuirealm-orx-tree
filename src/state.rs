@@ -142,20 +142,31 @@ where
 		}
 
 		if let Some(sibling) = parent.get_child(sibling_idx.saturating_sub(1)) {
-			return Some(self.get_last_open_node_of(&sibling));
+			return Some(self.get_last_open_node_of(sibling).idx());
 		}
 
 		return None;
 	}
 
 	/// Get the last open node in `selected`, recursively.
-	fn get_last_open_node_of(&self, selected: &Node<'_, V>) -> NodeIdx<V> {
+	fn get_last_open_node_of<'a>(&self, selected: Node<'a, V>) -> Node<'a, V> {
 		if self.is_opened(&selected.idx()) {
 			if let Some(child) = selected.get_child(selected.num_children().saturating_sub(1)) {
-				return self.get_last_open_node_of(&child);
+				return self.get_last_open_node_of(child);
 			}
 		}
 
-		return selected.idx();
+		return selected;
+	}
+
+	/// Get the very last (bottom) node of the tree.
+	pub fn get_last_open_node(&self, tree: &Tree<V>) -> Option<NodeIdx<V>> {
+		let mut node = tree.get_root()?;
+
+		while self.is_opened(&node.idx()) && node.num_children() > 0 {
+			node = self.get_last_open_node_of(node);
+		}
+
+		return Some(node.idx());
 	}
 }

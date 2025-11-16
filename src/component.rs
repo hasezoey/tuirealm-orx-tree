@@ -12,6 +12,7 @@ use tuirealm::{
 		Cmd,
 		CmdResult,
 		Direction,
+		Position,
 	},
 	props::{
 		Alignment,
@@ -249,6 +250,16 @@ where
 					},
 					Direction::Up => self.state.select(self.state.get_next_node_up(&self.tree)),
 				}
+				return CmdResult::Changed(self.state());
+			},
+			Cmd::GoTo(position) => {
+				match position {
+					Position::Begin => self.state.select(self.tree.get_root().map(|v| return v.idx())),
+					Position::End => self.state.select(self.state.get_last_open_node(&self.tree)),
+					// tree does not have convenient usize indexing, so we ignore it for now
+					Position::At(_) => (),
+				};
+
 				return CmdResult::Changed(self.state());
 			},
 			// Cmd::Scroll(direction) => (),

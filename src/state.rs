@@ -142,7 +142,8 @@ where
 		let old_offset = self.display_offset.get_vertical();
 
 		if (old_offset + height_as_usize).saturating_sub(PREVIEW_DISTANCE) < node_offset {
-			self.display_offset.set_vertical(old_offset + 1);
+			self.display_offset
+				.set_vertical(node_offset.saturating_sub(height_as_usize.saturating_sub(PREVIEW_DISTANCE)));
 		}
 	}
 
@@ -153,7 +154,8 @@ where
 		let old_offset = self.display_offset.get_vertical();
 
 		if old_offset > node_offset.saturating_sub(PREVIEW_DISTANCE) {
-			self.display_offset.set_vertical(old_offset.saturating_sub(1));
+			self.display_offset
+				.set_vertical(node_offset.saturating_sub(PREVIEW_DISTANCE));
 		}
 	}
 

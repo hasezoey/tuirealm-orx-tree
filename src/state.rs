@@ -58,7 +58,7 @@ impl Offset {
 
 	/// Get the current vertical value.
 	pub fn get_vertical(&self) -> usize {
-		self.y
+		return self.y
 	}
 }
 
@@ -221,8 +221,8 @@ where
 		// first get the offset of the currently selected node
 		let offset_curr_sel = self
 			.selected()
-			.and_then(|v| tree.get_node(v))
-			.and_then(|v| self.get_offset_of_node(tree, &v.idx()))
+			.and_then(|v| return tree.get_node(v))
+			.and_then(|v| return self.get_offset_of_node(tree, &v.idx()))
 			.unwrap_or(0);
 		let old_offset = self.display_offset.get_vertical();
 		let area = self.last_tree_size.unwrap_or_default();
@@ -239,8 +239,8 @@ where
 
 		let Some(mut next) = self
 			.selected()
-			.and_then(|v| tree.get_node(v))
-			.or_else(|| tree.get_root())
+			.and_then(|v| return tree.get_node(v))
+			.or_else(|| return tree.get_root())
 		else {
 			// no nodes in tree
 			return;
@@ -277,8 +277,8 @@ where
 		// first get the offset of the currently selected node
 		let offset_curr_sel = self
 			.selected()
-			.and_then(|v| tree.get_node(v))
-			.and_then(|v| self.get_offset_of_node(tree, &v.idx()))
+			.and_then(|v| return tree.get_node(v))
+			.and_then(|v| return self.get_offset_of_node(tree, &v.idx()))
 			.unwrap_or(0);
 		let old_offset = self.display_offset.get_vertical();
 		let area = self.last_tree_size.unwrap_or_default();
@@ -295,8 +295,8 @@ where
 
 		let Some(mut next) = self
 			.selected()
-			.and_then(|v| tree.get_node(v))
-			.or_else(|| tree.get_root())
+			.and_then(|v| return tree.get_node(v))
+			.or_else(|| return tree.get_root())
 		else {
 			// no nodes in tree
 			return;
@@ -361,7 +361,7 @@ where
 		}
 
 		// otherwise get the next sibling; if there is no next sibling, return self
-		return Self::get_next_sibling_down(&selected).unwrap_or_else(|| selected);
+		return Self::get_next_sibling_down(&selected).unwrap_or_else(|| return selected);
 	}
 
 	/// Dont use this function directly, use [`get_next_node_down`].

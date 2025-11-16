@@ -199,7 +199,7 @@ where
 
 		let style = Style::default().fg(foreground).bg(background);
 
-		let mut widget = TreeWidget::new(&self.tree, &self.state)
+		let mut widget = TreeWidget::new(&self.tree)
 			.block(block)
 			.style(style)
 			.hg_style(hg_style)
@@ -209,8 +209,7 @@ where
 			widget = widget.hg_str(hg_str);
 		}
 
-		// frame.render_stateful_widget(widget, area, &mut self.state);
-		frame.render_widget(widget, area);
+		frame.render_stateful_widget(widget, area, &mut self.state);
 	}
 
 	fn query(&self, attr: tuirealm::Attribute) -> Option<tuirealm::AttrValue> {
@@ -237,7 +236,7 @@ where
 		match cmd {
 			Cmd::Move(direction) => {
 				match direction {
-					Direction::Down => self.state.select(self.state.get_next_node_down(&self.tree)),
+					Direction::Down => self.state.select_next_down(&self.tree),
 					Direction::Left => {
 						if let Some(nodeidx) = self.state.selected() {
 							self.state.close(&nodeidx.clone());
@@ -248,14 +247,14 @@ where
 							self.state.open(nodeidx.clone());
 						}
 					},
-					Direction::Up => self.state.select(self.state.get_next_node_up(&self.tree)),
+					Direction::Up => self.state.select_next_up(&self.tree),
 				}
 				return CmdResult::Changed(self.state());
 			},
 			Cmd::GoTo(position) => {
 				match position {
-					Position::Begin => self.state.select(self.tree.get_root().map(|v| return v.idx())),
-					Position::End => self.state.select(self.state.get_last_open_node(&self.tree)),
+					Position::Begin => self.state.select_first(&self.tree),
+					Position::End => self.state.select_last(&self.tree),
 					// tree does not have convenient usize indexing, so we ignore it for now
 					Position::At(_) => (),
 				};

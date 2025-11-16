@@ -16,6 +16,7 @@ use tuirealm::{
 		widgets::{
 			Block,
 			Clear,
+			StatefulWidget,
 			Widget,
 		},
 	},
@@ -24,6 +25,7 @@ use tuirealm::{
 use crate::{
 	component::TreeViewState,
 	types::{
+		Node,
 		NodeValue,
 		Tree,
 	},
@@ -44,9 +46,7 @@ pub const DEFAULT_INDENT: usize = 2;
 #[derive(Debug, Clone)]
 pub struct TreeWidget<'a, V: NodeValue> {
 	/// The tree to render
-	tree:  &'a Tree<V>,
-	/// The Main state of the widget
-	state: &'a TreeViewState<V>,
+	tree: &'a Tree<V>,
 
 	/// The main style of the tree
 	main_style:  Style,
@@ -64,10 +64,9 @@ impl<'a, V> TreeWidget<'a, V>
 where
 	V: NodeValue,
 {
-	pub fn new(tree: &'a Tree<V>, state: &'a TreeViewState<V>) -> Self {
+	pub fn new(tree: &'a Tree<V>) -> Self {
 		return Self {
 			tree,
-			state,
 			main_style: Style::default(),
 			hg_style: Style::default(),
 			hg_str: None,
@@ -114,15 +113,13 @@ where
 	}
 }
 
-// Not using "StatefulWidget" as we dont need to modify state and using "type State =" requires the state to be public.
-impl<V> Widget for TreeWidget<'_, V>
+impl<V> StatefulWidget for TreeWidget<'_, V>
 where
 	V: NodeValue,
 {
-	fn render(self, area: Rect, buf: &mut Buffer)
-	where
-		Self: Sized,
-	{
+	type State = TreeViewState<V>;
+
+	fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
 		// render the block, if set
 		let area = if let Some(block) = self.block {
 			let inner = block.inner(area);
@@ -144,14 +141,14 @@ where
 		let walker = root_node.walk_with(&mut traverser);
 
 		let mut remaining_area = area;
+		let mut remaining_offset = state.get_offset();
 
 		for (depth, node) in walker {
 			// the only time this can return none, is when the current node is the root node
 			// which we want to treat as if it had a parent and that parent is open.
-			let parent_is_open = node.parent().is_none_or(|v| return self.state.is_opened(&v.idx()));
 
 			// dont render if the parent is not opened
-			if !parent_is_open {
+			if !is_parent_open(&node, state) {
 				continue;
 			}
 
@@ -160,6 +157,10 @@ where
 				// TODO: REMOVE THIS BEFORE RELEASE
 				debug!("breaking");
 				break;
+			}
+
+			if remaining_offset.decr_vertical() != 0 {
+				continue;
 			}
 
 			let is_leaf = node.num_children() == 0;
@@ -183,7 +184,7 @@ where
 
 			// render the indicators
 			if !is_leaf && !child_sym.is_empty() {
-				let sym = if self.state.is_opened(&node.idx()) {
+				let sym = if state.is_opened(&node.idx()) {
 					CHILD_OPENED_INDICATOR
 				} else {
 					CHILD_CLOSED_INDICATOR
@@ -192,7 +193,7 @@ where
 				sym.render(child_sym, buf);
 			}
 
-			let use_style = if self.state.is_selected(&node.idx()) {
+			let use_style = if state.is_selected(&node.idx()) {
 				self.hg_style
 			} else {
 				self.main_style
@@ -205,4 +206,16 @@ where
 			remaining_area.y += 1;
 		}
 	}
+}
+
+/// Get wheter the parent of the current node is open or not.
+/// Root node will always count as having a open parent.
+#[inline]
+pub(crate) fn is_parent_open<V>(node: &Node<'_, V>, state: &TreeViewState<V>) -> bool
+where
+	V: NodeValue,
+{
+	// the only time this can return none, is when the current node is the root node
+	// which we want to treat as if it had a parent and that parent is open.
+	return node.parent().is_none_or(|v| return state.is_opened(&v.idx()));
 }

@@ -1,17 +1,67 @@
-use orx_tree::NodeRef;
-
-use crate::types::{
-	Node,
-	NodeIdx,
-	NodeValue,
-	Tree,
+use orx_tree::{
+	Dfs,
+	NodeRef,
+	Traverser,
+	traversal::OverNode,
 };
+use tuirealm::ratatui::layout::Rect;
+
+use crate::{
+	types::{
+		Node,
+		NodeIdx,
+		NodeValue,
+		Tree,
+	},
+	widget::is_parent_open,
+};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+pub(crate) struct Offset {
+	// Horizontal offset
+	x: usize,
+	// Vertical offset
+	y: usize,
+}
+
+impl Offset {
+	/// Reset the offset to `0`.
+	pub fn reset(&mut self) {
+		self.x = 0;
+		self.y = 0;
+	}
+
+	/// Set the vertical offset.
+	pub fn set_vertical(&mut self, to: usize) {
+		self.y = to;
+	}
+
+	// /// Set the horizontal offset.
+	// pub fn set_horizontal(&mut self, to: usize) {
+	// 	self.x = to;
+	// }
+
+	/// Decrement the vertical offset by `1`.
+	pub fn decr_vertical(&mut self) -> usize {
+		self.y = self.y.saturating_sub(1);
+		return self.y;
+	}
+
+	// /// Decrement the horizontal offset by `1`.
+	// pub fn decr_horizontal(&mut self) -> usize {
+	// 	self.x = self.x.saturating_sub(1);
+	// 	return self.x;
+	// }
+}
 
 /// The main state-keeper
 #[derive(Debug, Clone, PartialEq)]
 pub struct TreeViewState<V: NodeValue> {
 	selected: Option<NodeIdx<V>>,
 	open:     Vec<NodeIdx<V>>,
+
+	/// The offset to skip drawing.
+	display_offset: Offset,
 }
 
 impl<V> Default for TreeViewState<V>
@@ -20,8 +70,9 @@ where
 {
 	fn default() -> Self {
 		return Self {
-			selected: None,
-			open:     Vec::default(),
+			selected:       None,
+			open:           Vec::default(),
+			display_offset: Offset::default(),
 		};
 	}
 }
@@ -54,8 +105,70 @@ where
 	}
 
 	/// Select a specific node or unselect the current node by setting it to `None`.
+	///
+	/// NOTE: this does *not* change the offset.
 	pub fn select(&mut self, node: Option<NodeIdx<V>>) {
 		self.selected = node;
+	}
+
+	/// Get a copy of the current offset.
+	pub(crate) fn get_offset(&self) -> Offset {
+		return self.display_offset;
+	}
+
+	/// Get the offset mutably.
+	pub(crate) fn get_offset_mut(&mut self) -> &mut Offset {
+		return &mut self.display_offset;
+	}
+
+	/// Select the next node downwards.
+	///
+	/// Fetches the next node, calculates the offset and applies it.
+	pub fn select_next_down(&mut self, tree: &Tree<V>) {
+		let next = self.get_next_node_down(tree);
+
+		match next.as_ref().and_then(|v| return self.get_offset_of_node(tree, v)) {
+			Some(offset) => self.display_offset.set_vertical(offset),
+			None => self.display_offset.reset(),
+		}
+
+		self.select(next);
+	}
+
+	/// Select the next node upwards.
+	///
+	/// Fetches the next node, calculates the offset and applies it.
+	pub fn select_next_up(&mut self, tree: &Tree<V>) {
+		let next = self.get_next_node_up(tree);
+
+		match next.as_ref().and_then(|v| return self.get_offset_of_node(tree, v)) {
+			Some(offset) => self.display_offset.set_vertical(offset),
+			None => self.display_offset.reset(),
+		}
+
+		self.select(next);
+	}
+
+	/// Select the first node.
+	///
+	/// Fetches the next node, resets the offset and applies it.
+	pub fn select_first(&mut self, tree: &Tree<V>) {
+		self.display_offset.reset();
+		self.select(tree.get_root().map(|v| return v.idx()));
+	}
+
+	/// Select the last node of the last opened parent node.
+	///
+	/// Fetches the next node, calculates the offset and applies it.
+	pub fn select_last(&mut self, tree: &Tree<V>) {
+		let next = self.get_last_open_node(tree);
+
+		match next.as_ref().and_then(|v| return self.get_offset_of_node(tree, v)) {
+			Some(offset) => self.display_offset.set_vertical(offset),
+			None => self.display_offset.reset(),
+		}
+
+		self.select(next);
 	}
 
 	/// Get the current select value.
@@ -168,5 +281,29 @@ where
 		}
 
 		return Some(node.idx());
+	}
+
+	/// Get the offset of a specific node as it would be in draw order.
+	fn get_offset_of_node(&self, tree: &Tree<V>, predicate: &NodeIdx<V>) -> Option<usize> {
+		let root_node = tree.get_root()?;
+		// TODO: generic walker
+		let mut traverser = Dfs::<OverNode>::new();
+		let walker = root_node.walk_with(&mut traverser);
+
+		let mut positon = None;
+
+		for node in walker {
+			if !is_parent_open(&node, self) {
+				continue;
+			}
+
+			*positon.get_or_insert_default() += 1;
+
+			if node.idx() == *predicate {
+				break;
+			}
+		}
+
+		return positon;
 	}
 }

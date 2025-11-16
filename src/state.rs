@@ -4,6 +4,7 @@ use orx_tree::{
 	Traverser,
 	traversal::OverNode,
 };
+use tuirealm::ratatui::layout::Rect;
 
 use crate::{
 	types::{
@@ -41,16 +42,19 @@ impl Offset {
 	// }
 
 	/// Decrement the vertical offset by `1`.
-	pub fn decr_vertical(&mut self) -> usize {
+	pub fn decr_vertical(&mut self) {
 		self.y = self.y.saturating_sub(1);
-		return self.y;
 	}
 
 	// /// Decrement the horizontal offset by `1`.
-	// pub fn decr_horizontal(&mut self) -> usize {
+	// pub fn decr_horizontal(&mut self) {
 	// 	self.x = self.x.saturating_sub(1);
-	// 	return self.x;
 	// }
+
+	/// Get the current vertical value.
+	pub fn get_vertical(&self) -> usize {
+		self.y
+	}
 }
 
 /// The main state-keeper
@@ -59,6 +63,8 @@ pub struct TreeViewState<V: NodeValue> {
 	selected: Option<NodeIdx<V>>,
 	open:     Vec<NodeIdx<V>>,
 
+	/// The last known size of the tree area.
+	last_tree_size: Option<Rect>,
 	/// The offset to skip drawing.
 	display_offset: Offset,
 }
@@ -71,6 +77,7 @@ where
 		return Self {
 			selected:       None,
 			open:           Vec::default(),
+			last_tree_size: None,
 			display_offset: Offset::default(),
 		};
 	}
@@ -120,6 +127,23 @@ where
 		return &mut self.display_offset;
 	}
 
+	/// Calculate & set the offset, minus the draw area for less jumping.
+	fn set_vert_offset_minus_area(&mut self, offset: usize) {
+		let area = self.last_tree_size.unwrap_or_default();
+		let height_as_usize = usize::from(area.height.saturating_sub(1));
+
+		debug!(
+			"what {:#?}",
+			(offset, height_as_usize, offset.saturating_sub(height_as_usize))
+		);
+
+		if height_as_usize <= offset {
+			self.display_offset.set_vertical(offset - height_as_usize);
+		} else {
+			self.display_offset.set_vertical(0);
+		}
+	}
+
 	/// Select the next node downwards.
 	///
 	/// Fetches the next node, calculates the offset and applies it.
@@ -127,7 +151,9 @@ where
 		let next = self.get_next_node_down(tree);
 
 		match next.as_ref().and_then(|v| return self.get_offset_of_node(tree, v)) {
-			Some(offset) => self.display_offset.set_vertical(offset),
+			Some(offset) => {
+				self.set_vert_offset_minus_area(offset);
+			},
 			None => self.display_offset.reset(),
 		}
 
@@ -141,7 +167,9 @@ where
 		let next = self.get_next_node_up(tree);
 
 		match next.as_ref().and_then(|v| return self.get_offset_of_node(tree, v)) {
-			Some(offset) => self.display_offset.set_vertical(offset),
+			Some(offset) => {
+				self.set_vert_offset_minus_area(offset);
+			},
 			None => self.display_offset.reset(),
 		}
 
@@ -163,7 +191,9 @@ where
 		let next = self.get_last_open_node(tree);
 
 		match next.as_ref().and_then(|v| return self.get_offset_of_node(tree, v)) {
-			Some(offset) => self.display_offset.set_vertical(offset),
+			Some(offset) => {
+				self.set_vert_offset_minus_area(offset);
+			},
 			None => self.display_offset.reset(),
 		}
 
@@ -175,6 +205,11 @@ where
 		return self.selected.as_ref();
 	}
 
+	/// Set the last known tree draw area (excluding the block).
+	pub(crate) fn set_last_size(&mut self, area: Rect) {
+		self.last_tree_size = Some(area);
+	}
+
 	/// Get the next node downwards, where:
 	/// - Base-case: select root node
 	/// - If current node is not open, select next sibling downwards
@@ -182,9 +217,7 @@ where
 	/// - If current note is open and has children, select first child
 	pub fn get_next_node_down(&self, tree: &Tree<V>) -> Option<NodeIdx<V>> {
 		if let Some(selected) = self.selected().and_then(|v| return tree.get_node(v)) {
-			if let Some(nodeidx) = self.get_next_node_down_checked(&selected) {
-				return Some(nodeidx);
-			}
+			return Some(self.get_next_node_down_checked(&selected));
 		}
 		return Some(tree.get_root()?.idx());
 	}
@@ -192,16 +225,16 @@ where
 	/// Dont use this function directly, use [`get_next_node_down`].
 	///
 	/// Get the next node downwards, otherwise returning `None`, for order see [`get_next_node_down`].
-	fn get_next_node_down_checked(&self, selected: &Node<'_, V>) -> Option<NodeIdx<V>> {
+	fn get_next_node_down_checked(&self, selected: &Node<'_, V>) -> NodeIdx<V> {
 		// if the current node is open and has children, get the first child
 		if self.is_opened(&selected.idx()) {
 			if let Some(child) = selected.get_child(0) {
-				return Some(child.idx());
+				return child.idx();
 			}
 		}
 
-		// otherwise get the next sibling
-		return Self::get_next_sibling_down(selected);
+		// otherwise get the next sibling; if there is no next sibling, return self
+		return Self::get_next_sibling_down(selected).unwrap_or_else(|| selected.idx());
 	}
 
 	/// Dont use this function directly, use [`get_next_node_down`].
@@ -289,20 +322,24 @@ where
 		let mut traverser = Dfs::<OverNode>::new();
 		let walker = root_node.walk_with(&mut traverser);
 
-		let mut positon = None;
+		let mut position: usize = 0;
 
 		for node in walker {
 			if !is_parent_open(node.clone(), self) {
 				continue;
 			}
 
-			*positon.get_or_insert_default() += 1;
+			position += 1;
 
 			if node.idx() == *predicate {
 				break;
 			}
 		}
 
-		return positon;
+		if position == 0 {
+			return None;
+		} else {
+			return Some(position.saturating_sub(1));
+		}
 	}
 }

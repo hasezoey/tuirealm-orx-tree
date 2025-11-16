@@ -133,6 +133,8 @@ where
 			return;
 		}
 
+		state.set_last_size(area);
+
 		// The tree may not have a root set yet, if it is not set, we dont need to render anything
 		let Some(root_node) = self.tree.get_root() else {
 			return;
@@ -154,12 +156,11 @@ where
 
 			// dont continue the loop if there is not more space to draw
 			if remaining_area.is_empty() {
-				// TODO: REMOVE THIS BEFORE RELEASE
-				debug!("breaking");
 				break;
 			}
 
-			if remaining_offset.decr_vertical() != 0 {
+			if remaining_offset.get_vertical() != 0 {
+				remaining_offset.decr_vertical();
 				continue;
 			}
 

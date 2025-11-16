@@ -215,6 +215,118 @@ where
 		self.select(next);
 	}
 
+	/// Select the last element (minus [`PREVIEW_DISTANCE`]) in current view, if that is already selected, scroll down by `area.height - PREVIEW_DISTANCE`.
+	pub fn select_pg_down(&mut self, tree: &Tree<V>) {
+		// TODO: do a more efficient implementation
+		// first get the offset of the currently selected node
+		let offset_curr_sel = self
+			.selected()
+			.and_then(|v| tree.get_node(v))
+			.and_then(|v| self.get_offset_of_node(tree, &v.idx()))
+			.unwrap_or(0);
+		let old_offset = self.display_offset.get_vertical();
+		let area = self.last_tree_size.unwrap_or_default();
+		let height_as_usize = usize::from(area.height.saturating_sub(1));
+
+		// get how many iterations / lines to scroll by, depending on if we are on the last visible element or somewhere in-between
+		let mut iterations = if (old_offset + height_as_usize).saturating_sub(PREVIEW_DISTANCE) > offset_curr_sel {
+			(old_offset + height_as_usize)
+				.saturating_sub(PREVIEW_DISTANCE)
+				.saturating_sub(offset_curr_sel)
+		} else {
+			height_as_usize.saturating_sub(PREVIEW_DISTANCE)
+		};
+
+		let Some(mut next) = self
+			.selected()
+			.and_then(|v| tree.get_node(v))
+			.or_else(|| tree.get_root())
+		else {
+			// no nodes in tree
+			return;
+		};
+
+		// scroll for "iterations" / lines
+		while iterations != 0 {
+			let old = next.idx();
+			next = self.get_next_node_down_checked(next);
+
+			if old == next.idx() {
+				break;
+			}
+
+			iterations -= 1;
+		}
+
+		// normal set scroll and offset
+		let next = next.idx();
+
+		match self.get_offset_of_node(tree, &next) {
+			Some(offset) => {
+				self.set_vert_offset_down(offset);
+			},
+			None => self.display_offset.reset(),
+		}
+
+		self.select(Some(next));
+	}
+
+	/// Select the first element (minus [`PREVIEW_DISTANCE`]) in current view, if that is already selected, scroll up by `area.height - PREVIEW_DISTANCE`.
+	pub fn select_pg_up(&mut self, tree: &Tree<V>) {
+		// TODO: do a more efficient implementation
+		// first get the offset of the currently selected node
+		let offset_curr_sel = self
+			.selected()
+			.and_then(|v| tree.get_node(v))
+			.and_then(|v| self.get_offset_of_node(tree, &v.idx()))
+			.unwrap_or(0);
+		let old_offset = self.display_offset.get_vertical();
+		let area = self.last_tree_size.unwrap_or_default();
+		let height_as_usize = usize::from(area.height.saturating_sub(1));
+
+		// get how many iterations / lines to scroll by, depending on if we are on the first visible element or somewhere in-between
+		let mut iterations = if old_offset < offset_curr_sel.saturating_sub(PREVIEW_DISTANCE) {
+			offset_curr_sel
+				.saturating_sub(old_offset)
+				.saturating_sub(PREVIEW_DISTANCE)
+		} else {
+			height_as_usize.saturating_sub(PREVIEW_DISTANCE)
+		};
+
+		let Some(mut next) = self
+			.selected()
+			.and_then(|v| tree.get_node(v))
+			.or_else(|| tree.get_root())
+		else {
+			// no nodes in tree
+			return;
+		};
+
+		// scroll for "iterations" / lines
+		while iterations != 0 {
+			let old = next.idx();
+			next = self.get_next_node_up_checked(next);
+
+			if old == next.idx() {
+				break;
+			}
+
+			iterations -= 1;
+		}
+
+		// normal set scroll and offset
+		let next = next.idx();
+
+		match self.get_offset_of_node(tree, &next) {
+			Some(offset) => {
+				self.set_vert_offset_up(offset);
+			},
+			None => self.display_offset.reset(),
+		}
+
+		self.select(Some(next));
+	}
+
 	/// Get the current select value.
 	pub fn selected(&self) -> Option<&NodeIdx<V>> {
 		return self.selected.as_ref();
@@ -232,24 +344,24 @@ where
 	/// - If current note is open and has children, select first child
 	pub fn get_next_node_down(&self, tree: &Tree<V>) -> Option<NodeIdx<V>> {
 		if let Some(selected) = self.selected().and_then(|v| return tree.get_node(v)) {
-			return Some(self.get_next_node_down_checked(&selected));
+			return Some(self.get_next_node_down_checked(selected).idx());
 		}
 		return Some(tree.get_root()?.idx());
 	}
 
 	/// Dont use this function directly, use [`get_next_node_down`].
 	///
-	/// Get the next node downwards, otherwise returning `None`, for order see [`get_next_node_down`].
-	fn get_next_node_down_checked(&self, selected: &Node<'_, V>) -> NodeIdx<V> {
+	/// Get the next node downwards, otherwise returning itself, for order see [`get_next_node_down`].
+	fn get_next_node_down_checked<'a>(&self, selected: Node<'a, V>) -> Node<'a, V> {
 		// if the current node is open and has children, get the first child
 		if self.is_opened(&selected.idx()) {
 			if let Some(child) = selected.get_child(0) {
-				return child.idx();
+				return child;
 			}
 		}
 
 		// otherwise get the next sibling; if there is no next sibling, return self
-		return Self::get_next_sibling_down(selected).unwrap_or_else(|| selected.idx());
+		return Self::get_next_sibling_down(&selected).unwrap_or_else(|| selected);
 	}
 
 	/// Dont use this function directly, use [`get_next_node_down`].
@@ -259,7 +371,7 @@ where
 	/// - If current node is not open:
 	///   - Select the next sibling, or
 	///   - Select the next sibling of the parent (until hitting the root node, which returns `None`)
-	fn get_next_sibling_down(selected: &Node<'_, V>) -> Option<NodeIdx<V>> {
+	fn get_next_sibling_down<'a>(selected: &Node<'a, V>) -> Option<Node<'a, V>> {
 		let sibling_idx = selected.sibling_idx();
 		let parent = selected.parent()?;
 
@@ -269,7 +381,7 @@ where
 		}
 
 		// We are not at the last sibling yet, so get the next sibling
-		return parent.get_child(sibling_idx + 1).map(|v| return v.idx());
+		return parent.get_child(sibling_idx + 1);
 	}
 
 	/// Get the next node upwards, where:
@@ -279,9 +391,7 @@ where
 	/// - If parent has no other sibling before, use parent
 	pub fn get_next_node_up(&self, tree: &Tree<V>) -> Option<NodeIdx<V>> {
 		if let Some(selected) = self.selected().and_then(|v| return tree.get_node(v)) {
-			if let Some(nodeidx) = self.get_next_node_up_checked(&selected) {
-				return Some(nodeidx);
-			}
+			return Some(self.get_next_node_up_checked(selected).idx());
 		}
 		return Some(tree.get_root()?.idx());
 	}
@@ -289,23 +399,26 @@ where
 	/// Dont use this function directly, use [`get_next_node_up`].
 	///
 	/// Get the next node upwards where:
+	/// - Base-case: return itself
 	/// - If parent has another sibling before, use that
 	///   - If that sibling is open, use the last child of that (recursively)
 	/// - If parent has no other sibling before, use parent
-	fn get_next_node_up_checked(&self, selected: &Node<'_, V>) -> Option<NodeIdx<V>> {
+	fn get_next_node_up_checked<'a>(&self, selected: Node<'a, V>) -> Node<'a, V> {
 		let sibling_idx = selected.sibling_idx();
 
-		let parent = selected.parent()?;
+		let Some(parent) = selected.parent() else {
+			return selected;
+		};
 
 		if sibling_idx == 0 {
-			return Some(parent.idx());
+			return parent;
 		}
 
 		if let Some(sibling) = parent.get_child(sibling_idx.saturating_sub(1)) {
-			return Some(self.get_last_open_node_of(sibling).idx());
+			return self.get_last_open_node_of(sibling);
 		}
 
-		return None;
+		return selected;
 	}
 
 	/// Get the last open node in `selected`, recursively.

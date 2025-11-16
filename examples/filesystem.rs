@@ -53,6 +53,10 @@ use tuirealm::{
 	MockComponent,
 	command::CmdResult,
 };
+use tuirealm_orx_tree::component::{
+	CMD_PG_DOWN,
+	CMD_PG_UP,
+};
 use tuirealm_orx_tree::{
 	component::TreeView,
 	types::{
@@ -149,14 +153,14 @@ impl Component<Msg, UserEvents> for FileSystemTree {
 			}) => self.perform(Cmd::Move(Direction::Up)),
 
 			// quick selection movement
-			// Event::Keyboard(KeyEvent {
-			// 	code: Key::PageDown,
-			// 	modifiers: KeyModifiers::NONE,
-			// }) => self.perform(Cmd::Custom(CMD_PG_DOWN)),
-			// Event::Keyboard(KeyEvent {
-			// 	code: Key::PageUp,
-			// 	modifiers: KeyModifiers::NONE,
-			// }) => self.perform(Cmd::Custom(CMD_PG_UP)),
+			Event::Keyboard(KeyEvent {
+				code: Key::PageDown,
+				modifiers: KeyModifiers::NONE,
+			}) => self.perform(Cmd::Custom(CMD_PG_DOWN)),
+			Event::Keyboard(KeyEvent {
+				code: Key::PageUp,
+				modifiers: KeyModifiers::NONE,
+			}) => self.perform(Cmd::Custom(CMD_PG_UP)),
 			Event::Keyboard(KeyEvent {
 				code: Key::Home,
 				modifiers: KeyModifiers::NONE,

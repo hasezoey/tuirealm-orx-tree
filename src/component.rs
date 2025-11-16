@@ -40,6 +40,10 @@ use crate::{
 // --- Custom Attributes
 const ATTR_INDENT: &str = "attr-indent";
 
+// --- Custom Commands
+pub const CMD_PG_UP: &str = "cmd-pg-down";
+pub const CMD_PG_DOWN: &str = "cmd-pg-up";
+
 #[derive(Debug, Clone)]
 pub struct TreeView<V: NodeValue> {
 	props: Props,
@@ -261,8 +265,15 @@ where
 
 				return CmdResult::Changed(self.state());
 			},
+			Cmd::Custom(CMD_PG_DOWN) => {
+				self.state.select_pg_down(&self.tree);
+				return CmdResult::Changed(self.state());
+			},
+			Cmd::Custom(CMD_PG_UP) => {
+				self.state.select_pg_up(&self.tree);
+				return CmdResult::Changed(self.state());
+			},
 			// Cmd::Scroll(direction) => (),
-			// Cmd::GoTo(position) => (),
 			// Cmd::Submit => (),
 			// Cmd::Delete => (),
 			// Cmd::Cancel => (),

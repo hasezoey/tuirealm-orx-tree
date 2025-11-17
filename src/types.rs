@@ -16,3 +16,11 @@ pub trait NodeValue {
 	/// Get the text to display for the current node value.
 	fn get_text(&self, offset: usize) -> Line<'_>;
 }
+
+impl NodeValue for String {
+	fn get_text(&self, offset: usize) -> Line<'_> {
+		let offset = self.len().min(offset);
+
+		return Line::raw(&self[offset..]);
+	}
+}

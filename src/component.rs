@@ -39,15 +39,19 @@ use crate::{
 	},
 };
 
-// --- Custom Attributes
-const ATTR_INDENT: &str = "attr-indent";
-const ATTR_EMPTY_TREE: &str = "attr-empty-tree-text";
-const ATTR_HORIZ_SCROLL_STEP: &str = "attr-horiz-scroll-step";
-const ATTR_VERT_SCROLL_STEP: &str = "attr-vert-scroll-step";
+/// Custom attributes for [`Attribute::Custom`].
+pub mod attr {
+	pub const INDENT: &str = "indent";
+	pub const EMPTY_TREE: &str = "empty-tree-text";
+	pub const HORIZ_SCROLL_STEP: &str = "horiz-scroll-step";
+	pub const VERT_SCROLL_STEP: &str = "vert-scroll-step";
+}
 
-// --- Custom Commands
-pub const CMD_PG_UP: &str = "cmd-pg-down";
-pub const CMD_PG_DOWN: &str = "cmd-pg-up";
+/// Custom commands for [`Cmd::Custom`] (/ [`TreeView::perform`]).
+pub mod cmd {
+	pub const PG_UP: &str = "pg-down";
+	pub const PG_DOWN: &str = "pg-up";
+}
 
 #[derive(Debug, Clone)]
 #[must_use]
@@ -126,7 +130,7 @@ where
 	///
 	/// Default: [`DEFAULT_INDENT`](crate::widget::DEFAULT_INDENT)
 	pub fn indent_size(mut self, indent: usize) -> Self {
-		self.attr(Attribute::Custom(ATTR_INDENT), AttrValue::Length(indent));
+		self.attr(Attribute::Custom(attr::INDENT), AttrValue::Length(indent));
 
 		return self;
 	}
@@ -160,7 +164,7 @@ where
 	///
 	/// Default: [`DEFAULT_EMPTY_TREE_TEXT`](crate::widget::DEFAULT_EMPTY_TREE_TEXT)
 	pub fn empty_tree_text<S: Into<String>>(mut self, val: S) -> Self {
-		self.attr(Attribute::Custom(ATTR_EMPTY_TREE), AttrValue::String(val.into()));
+		self.attr(Attribute::Custom(attr::EMPTY_TREE), AttrValue::String(val.into()));
 
 		return self;
 	}
@@ -209,7 +213,7 @@ where
 		let title = tui_realm_stdlib::utils::get_title_or_center(&self.props);
 		let empty_tree_text = self
 			.props
-			.get_ref(Attribute::Custom(ATTR_EMPTY_TREE))
+			.get_ref(Attribute::Custom(attr::EMPTY_TREE))
 			.and_then(AttrValue::as_string);
 
 		let borders = self
@@ -242,7 +246,7 @@ where
 
 		let indent = self
 			.props
-			.get_or(Attribute::Custom(ATTR_INDENT), AttrValue::Length(DEFAULT_INDENT))
+			.get_or(Attribute::Custom(attr::INDENT), AttrValue::Length(DEFAULT_INDENT))
 			.unwrap_length();
 
 		let block = tui_realm_stdlib::utils::get_block(borders, Some(&title), focus, inactive_style);
@@ -269,10 +273,10 @@ where
 
 	fn query(&self, attr: tuirealm::Attribute) -> Option<tuirealm::AttrValue> {
 		return match attr {
-			Attribute::Custom(ATTR_HORIZ_SCROLL_STEP) => {
+			Attribute::Custom(attr::HORIZ_SCROLL_STEP) => {
 				return Some(AttrValue::Length(self.state.get_horizontal_scroll_step().get()));
 			},
-			Attribute::Custom(ATTR_VERT_SCROLL_STEP) => {
+			Attribute::Custom(attr::VERT_SCROLL_STEP) => {
 				return Some(AttrValue::Length(self.state.get_vertical_scroll_step().get()));
 			},
 			_ => self.props.get(attr),
@@ -281,11 +285,11 @@ where
 
 	fn attr(&mut self, attr: tuirealm::Attribute, value: tuirealm::AttrValue) {
 		match attr {
-			Attribute::Custom(ATTR_HORIZ_SCROLL_STEP) => {
+			Attribute::Custom(attr::HORIZ_SCROLL_STEP) => {
 				let val = NonZeroUsize::new(value.unwrap_length()).unwrap();
 				self.state.set_horizontal_scroll_step(val);
 			},
-			Attribute::Custom(ATTR_VERT_SCROLL_STEP) => {
+			Attribute::Custom(attr::VERT_SCROLL_STEP) => {
 				let val = NonZeroUsize::new(value.unwrap_length()).unwrap();
 				self.state.set_vertical_scroll_step(val);
 			},
@@ -334,11 +338,11 @@ where
 
 				return CmdResult::Changed(self.state());
 			},
-			Cmd::Custom(CMD_PG_DOWN) => {
+			Cmd::Custom(cmd::PG_DOWN) => {
 				self.state.select_pg_down(&self.tree);
 				return CmdResult::Changed(self.state());
 			},
-			Cmd::Custom(CMD_PG_UP) => {
+			Cmd::Custom(cmd::PG_UP) => {
 				self.state.select_pg_up(&self.tree);
 				return CmdResult::Changed(self.state());
 			},

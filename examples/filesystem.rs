@@ -50,10 +50,7 @@ use tuirealm::{
 	MockComponent,
 	command::CmdResult,
 };
-use tuirealm_orx_tree::component::{
-	CMD_PG_DOWN,
-	CMD_PG_UP,
-};
+use tuirealm_orx_tree::component::cmd;
 use tuirealm_orx_tree::{
 	component::TreeView,
 	types::{
@@ -160,11 +157,11 @@ impl Component<Msg, UserEvents> for FileSystemTree {
 			Event::Keyboard(KeyEvent {
 				code: Key::PageDown,
 				modifiers: KeyModifiers::NONE,
-			}) => self.perform(Cmd::Custom(CMD_PG_DOWN)),
+			}) => self.perform(Cmd::Custom(cmd::PG_DOWN)),
 			Event::Keyboard(KeyEvent {
 				code: Key::PageUp,
 				modifiers: KeyModifiers::NONE,
-			}) => self.perform(Cmd::Custom(CMD_PG_UP)),
+			}) => self.perform(Cmd::Custom(cmd::PG_UP)),
 			Event::Keyboard(KeyEvent {
 				code: Key::Home,
 				modifiers: KeyModifiers::NONE,
@@ -195,11 +192,11 @@ impl Component<Msg, UserEvents> for FileSystemTree {
 			// Event::Keyboard(KeyEvent {
 			// 	code: Key::Home,
 			// 	modifiers: KeyModifiers::SHIFT,
-			// }) => self.perform(Cmd::Custom(CMD_SCROLL_LINE_HOME)),
+			// }) => self.perform(Cmd::Custom(cmd::SCROLL_LINE_HOME)),
 			// Event::Keyboard(KeyEvent {
 			// 	code: Key::End,
 			// 	modifiers: KeyModifiers::SHIFT,
-			// }) => self.perform(Cmd::Custom(CMD_SCROLL_LINE_END)),
+			// }) => self.perform(Cmd::Custom(cmd::SCROLL_LINE_END)),
 			Event::Keyboard(KeyEvent {
 				code: Key::Char('q'),
 				modifiers: KeyModifiers::NONE,

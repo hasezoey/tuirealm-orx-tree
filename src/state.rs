@@ -355,10 +355,10 @@ where
 	/// Get the next node downwards, otherwise returning itself, for order see [`get_next_node_down`].
 	fn get_next_node_down_checked<'a>(&self, selected: Node<'a, V>) -> Node<'a, V> {
 		// if the current node is open and has children, get the first child
-		if self.is_opened(&selected.idx()) {
-			if let Some(child) = selected.get_child(0) {
-				return child;
-			}
+		if self.is_opened(&selected.idx())
+			&& let Some(child) = selected.get_child(0)
+		{
+			return child;
 		}
 
 		// otherwise get the next sibling; if there is no next sibling, return self
@@ -424,10 +424,10 @@ where
 
 	/// Get the last open node in `selected`, recursively.
 	fn get_last_open_node_of<'a>(&self, selected: Node<'a, V>) -> Node<'a, V> {
-		if self.is_opened(&selected.idx()) {
-			if let Some(child) = selected.get_child(selected.num_children().saturating_sub(1)) {
-				return self.get_last_open_node_of(child);
-			}
+		if self.is_opened(&selected.idx())
+			&& let Some(child) = selected.get_child(selected.num_children().saturating_sub(1))
+		{
+			return self.get_last_open_node_of(child);
 		}
 
 		return selected;

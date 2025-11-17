@@ -131,7 +131,7 @@ where
 			return;
 		}
 
-		state.set_last_size(area);
+		state.set_last_size(area, self.tree);
 
 		// The tree may not have a root set yet, if it is not set, we dont need to render anything
 		let Some(root_node) = self.tree.get_root() else {

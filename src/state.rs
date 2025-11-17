@@ -4,7 +4,10 @@ use orx_tree::{
 	Traverser,
 	traversal::OverNode,
 };
-use tuirealm::ratatui::layout::Rect;
+use tuirealm::ratatui::layout::{
+	Rect,
+	Size,
+};
 
 use crate::{
 	types::{
@@ -338,9 +341,36 @@ where
 		return self.selected.as_ref();
 	}
 
+	/// Change the [`Offset`] so that the currently selected node is always visible.
+	///
+	/// For example after a component size change.
+	pub fn clamp_offset_selected(&mut self, tree: &Tree<V>) {
+		let Some(current_pos) = self
+			.selected()
+			.and_then(|v| return tree.get_node(v))
+			.and_then(|v| return self.get_offset_of_node(tree, &v.idx()))
+		else {
+			// no node is selected, or it is not valid anymore
+			return;
+		};
+
+		self.set_vert_offset_down(current_pos);
+	}
+
 	/// Set the last known tree draw area (excluding the block).
-	pub(crate) fn set_last_size(&mut self, area: Rect) {
+	///
+	/// And clamp the display offset so that selected is always visible, if necessary.
+	pub(crate) fn set_last_size(&mut self, area: Rect, tree: &Tree<V>) {
+		let need_clamping = self
+			.last_tree_size
+			.is_some_and(|v| return size_height_gt(v.as_size(), area.as_size()))
+			&& self.selected().is_some();
+
 		self.last_tree_size = Some(area);
+
+		if need_clamping {
+			self.clamp_offset_selected(tree);
+		}
 	}
 
 	/// Get the next node downwards, where:
@@ -487,4 +517,12 @@ where
 	pub fn scroll_left(&mut self) {
 		self.display_offset.decr_horizontal();
 	}
+}
+
+/// Manually implemented because [`Size`] does not currently implement [`PartialOrd`].
+///
+/// See <https://github.com/ratatui/ratatui/issues/2204>
+#[inline]
+fn size_height_gt(left: Size, right: Size) -> bool {
+	return left.height > right.height;
 }

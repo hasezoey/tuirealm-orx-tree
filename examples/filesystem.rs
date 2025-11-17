@@ -105,14 +105,8 @@ impl Default for FileSystemTree {
 }
 
 impl FileSystemTree {
-	pub fn new() -> Self {
-		return Self {
-			component: TreeView::default(),
-		};
-	}
-
-	pub fn new_with_tree(tree: Tree<FSTreeData>) -> Self {
-		let component = TreeView::with_tree(tree)
+	fn new_tree() -> TreeView<FSTreeData> {
+		return TreeView::default()
 			.background(Color::Reset)
 			.foreground(Color::White)
 			.border(
@@ -126,6 +120,16 @@ impl FileSystemTree {
 			.title(" Library ", Alignment::Left)
 			.highlight_color(Color::Yellow)
 			.highlight_symbol(">");
+	}
+
+	pub fn new() -> Self {
+		return Self {
+			component: Self::new_tree(),
+		};
+	}
+
+	pub fn new_with_tree(tree: Tree<FSTreeData>) -> Self {
+		let component = Self::new_tree().tree(tree);
 
 		return Self { component };
 	}

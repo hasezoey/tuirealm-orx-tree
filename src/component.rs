@@ -71,20 +71,23 @@ where
 	V: NodeValue,
 {
 	/// Create a new instance with a initial tree.
-	pub fn with_tree(tree: Tree<V>) -> Self {
-		let mut state = TreeViewState::default();
+	pub fn new_tree(tree: Tree<V>) -> Self {
+		let this = Self::default().tree(tree);
 
-		if let Some(root) = tree.get_root() {
+		return this;
+	}
+
+	/// Set the tree for this TreeView.
+	pub fn tree(mut self, tree: Tree<V>) -> Self {
+		self.tree = tree;
+
+		if let Some(root) = self.tree.get_root() {
 			let rootidx = root.idx();
-			state.open(rootidx.clone());
-			state.select(Some(rootidx));
+			self.state.open(rootidx.clone());
+			self.state.select(Some(rootidx));
 		}
 
-		return Self {
-			tree,
-			state,
-			..Default::default()
-		};
+		return self;
 	}
 
 	/// Get the currently selected node, if there is one and is valid.

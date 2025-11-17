@@ -36,6 +36,8 @@ pub const CHILD_OPENED_INDICATOR: &str = "\u{25bc}";
 /// Any extra length not covered in the Indicators will be filled with space.
 pub const CHILD_INDICATOR_LENGTH: u16 = 2;
 pub const DEFAULT_INDENT: usize = 2;
+/// Default text to display if the tree is empty.
+pub const DEFAULT_EMPTY_TREE_TEXT: &str = "The Tree is empty";
 
 /// The ratatui widget to draw.
 ///
@@ -56,6 +58,9 @@ pub struct TreeWidget<'a, V: NodeValue> {
 	indent_size: usize,
 	/// Optional block to render around the widget itself
 	block:       Option<Block<'a>>,
+
+	/// Text to display if the tree is empty (not even a root node)
+	empty_tree_text: &'a str,
 }
 
 impl<'a, V> TreeWidget<'a, V>
@@ -70,6 +75,7 @@ where
 			hg_str: None,
 			indent_size: DEFAULT_INDENT,
 			block: None,
+			empty_tree_text: DEFAULT_EMPTY_TREE_TEXT,
 		};
 	}
 
@@ -109,6 +115,15 @@ where
 
 		return self;
 	}
+
+	/// Set a empty tree text.
+	///
+	/// Default: [`DEFAULT_EMPTY_TREE_TEXT`]
+	pub fn empty_tree_text(mut self, val: &'a str) -> Self {
+		self.empty_tree_text = val;
+
+		return self;
+	}
 }
 
 impl<V> StatefulWidget for TreeWidget<'_, V>
@@ -135,6 +150,8 @@ where
 
 		// The tree may not have a root set yet, if it is not set, we dont need to render anything
 		let Some(root_node) = self.tree.get_root() else {
+			self.empty_tree_text.render(area, buf);
+
 			return;
 		};
 		let mut traverser = Dfs::<OverDepthNode>::new();

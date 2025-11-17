@@ -39,6 +39,7 @@ use crate::{
 
 // --- Custom Attributes
 const ATTR_INDENT: &str = "attr-indent";
+const ATTR_EMPTY_TREE: &str = "attr-empty-tree-text";
 
 // --- Custom Commands
 pub const CMD_PG_UP: &str = "cmd-pg-down";
@@ -143,6 +144,17 @@ where
 
 		return self;
 	}
+
+	/// Set custom text for when a tree is empty.
+	///
+	/// This can be used to set `Loading...` for example.
+	/// If this text is not applicable anymore, it can be changed via [`.attr`](Self::attr), or add a root node,
+	/// whichever is more applicable.
+	pub fn empty_tree_text<S: Into<String>>(mut self, val: S) -> Self {
+		self.attr(Attribute::Custom(ATTR_EMPTY_TREE), AttrValue::String(val.into()));
+
+		return self;
+	}
 }
 
 impl<V> MockComponent for TreeView<V>
@@ -164,6 +176,10 @@ where
 			.unwrap_color();
 
 		let title = tui_realm_stdlib::utils::get_title_or_center(&self.props);
+		let empty_tree_text = self
+			.props
+			.get_ref(Attribute::Custom(ATTR_EMPTY_TREE))
+			.and_then(AttrValue::as_string);
 
 		let borders = self
 			.props
@@ -212,6 +228,9 @@ where
 
 		if let Some(hg_str) = hg_str {
 			widget = widget.hg_str(hg_str);
+		}
+		if let Some(empty_tree_text) = empty_tree_text {
+			widget = widget.empty_tree_text(empty_tree_text);
 		}
 
 		frame.render_stateful_widget(widget, area, &mut self.state);

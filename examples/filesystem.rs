@@ -33,10 +33,7 @@ use tuirealm::ratatui::layout::{
 	Constraint,
 	Layout,
 };
-use tuirealm::ratatui::text::{
-	Line,
-	ToLine,
-};
+use tuirealm::ratatui::text::Line;
 use tuirealm::terminal::{
 	CrosstermTerminalAdapter,
 	TerminalBridge,
@@ -85,11 +82,14 @@ impl FSTreeData {
 }
 
 impl NodeValue for FSTreeData {
-	fn get_text(&self) -> Line<'_> {
-		return self
+	fn get_text(&self, offset: usize) -> Line<'_> {
+		let res = self
 			.as_str
-			.get_or_init(|| return self.path.file_name().unwrap().to_string_lossy().to_string())
-			.to_line();
+			.get_or_init(|| return self.path.file_name().unwrap().to_string_lossy().to_string());
+
+		let offset = res.len().min(offset);
+
+		return Line::raw(&res[offset..]);
 	}
 }
 
@@ -171,14 +171,14 @@ impl Component<Msg, UserEvents> for FileSystemTree {
 			}) => self.perform(Cmd::GoTo(Position::End)),
 
 			// scroll
-			// Event::Keyboard(KeyEvent {
-			// 	code: Key::Left,
-			// 	modifiers: KeyModifiers::SHIFT,
-			// }) => self.perform(Cmd::Scroll(Direction::Left)),
-			// Event::Keyboard(KeyEvent {
-			// 	code: Key::Right,
-			// 	modifiers: KeyModifiers::SHIFT,
-			// }) => self.perform(Cmd::Scroll(Direction::Right)),
+			Event::Keyboard(KeyEvent {
+				code: Key::Left,
+				modifiers: KeyModifiers::SHIFT,
+			}) => self.perform(Cmd::Scroll(Direction::Left)),
+			Event::Keyboard(KeyEvent {
+				code: Key::Right,
+				modifiers: KeyModifiers::SHIFT,
+			}) => self.perform(Cmd::Scroll(Direction::Right)),
 
 			// Event::Keyboard(KeyEvent {
 			// 	code: Key::Home,

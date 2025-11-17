@@ -8,11 +8,7 @@ use tuirealm::{
 	props::Style,
 	ratatui::{
 		buffer::Buffer,
-		layout::{
-			Constraint,
-			Layout,
-			Rect,
-		},
+		layout::Rect,
 		widgets::{
 			Block,
 			Clear,
@@ -24,6 +20,7 @@ use tuirealm::{
 
 use crate::{
 	component::TreeViewState,
+	state::Offset,
 	types::{
 		Node,
 		NodeValue,
@@ -174,12 +171,13 @@ where
 
 			let child_sym_length = if is_leaf { 0 } else { CHILD_INDICATOR_LENGTH };
 
-			let [clear_area, child_sym, line_area] = Layout::horizontal([
-				Constraint::Length(indent),
-				Constraint::Length(child_sym_length),
-				Constraint::Fill(1),
-			])
-			.areas(remaining_area);
+			let mut calc_area = remaining_area;
+			let mut display_offset = remaining_offset;
+
+			let clear_area = calc_area_with_offset(&mut display_offset, &mut calc_area, indent);
+			let child_sym = calc_area_with_offset(&mut display_offset, &mut calc_area, child_sym_length);
+
+			let line_area = calc_area;
 
 			// render the indent
 			Clear.render(clear_area, buf);
@@ -202,7 +200,10 @@ where
 			};
 
 			// render the main data
-			node.data().get_text().style(use_style).render(line_area, buf);
+			node.data()
+				.get_text(display_offset.get_horizontal())
+				.style(use_style)
+				.render(line_area, buf);
 
 			remaining_area.height = remaining_area.height.saturating_sub(1);
 			remaining_area.y += 1;
@@ -231,4 +232,24 @@ where
 	}
 
 	return true;
+}
+
+/// Calculate the area for `value`, removing that area from `available_area` and `display_offset`.
+fn calc_area_with_offset(display_offset: &mut Offset, available_area: &mut Rect, value: u16) -> Rect {
+	let disp_offset = display_offset.get_horizontal();
+	let draw_value = value.saturating_sub(u16::try_from(disp_offset).unwrap_or(u16::MAX));
+
+	display_offset.set_horizontal(disp_offset.saturating_sub(usize::from(value.saturating_sub(draw_value))));
+
+	// properly set "value_area" as there are
+	let mut value_area = *available_area;
+	value_area.width = value_area.width.min(draw_value);
+
+	// remove "value_area" from "available_area"
+	// sadly there is no built-in "Rect" function to remove a specific section
+	let offset = value_area.width;
+	available_area.width = available_area.width.saturating_sub(offset);
+	available_area.x += offset;
+
+	return value_area;
 }

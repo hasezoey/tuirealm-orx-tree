@@ -41,24 +41,29 @@ impl Offset {
 		self.y = to;
 	}
 
-	// /// Set the horizontal offset.
-	// pub fn set_horizontal(&mut self, to: usize) {
-	// 	self.x = to;
-	// }
+	/// Set the horizontal offset.
+	pub fn set_horizontal(&mut self, to: usize) {
+		self.x = to;
+	}
 
 	/// Decrement the vertical offset by `1`.
 	pub fn decr_vertical(&mut self) {
 		self.y = self.y.saturating_sub(1);
 	}
 
-	// /// Decrement the horizontal offset by `1`.
-	// pub fn decr_horizontal(&mut self) {
-	// 	self.x = self.x.saturating_sub(1);
-	// }
+	/// Decrement the horizontal offset by `1`.
+	pub fn decr_horizontal(&mut self) {
+		self.x = self.x.saturating_sub(1);
+	}
 
 	/// Get the current vertical value.
 	pub fn get_vertical(&self) -> usize {
 		return self.y;
+	}
+
+	/// Get the current horizontal value.
+	pub fn get_horizontal(&self) -> usize {
+		return self.x;
 	}
 }
 
@@ -470,5 +475,16 @@ where
 		} else {
 			return Some(position.saturating_sub(1));
 		}
+	}
+
+	/// Scroll Right by one cell.
+	pub fn scroll_right(&mut self) {
+		self.display_offset
+			.set_horizontal(self.display_offset.get_horizontal() + 1);
+	}
+
+	/// Scroll Left by one cell.
+	pub fn scroll_left(&mut self) {
+		self.display_offset.decr_horizontal();
 	}
 }

@@ -274,7 +274,15 @@ where
 				self.state.select_pg_up(&self.tree);
 				return CmdResult::Changed(self.state());
 			},
-			// Cmd::Scroll(direction) => (),
+			Cmd::Scroll(direction) => {
+				match direction {
+					Direction::Down => (),
+					Direction::Up => (),
+					Direction::Left => self.state.scroll_left(),
+					Direction::Right => self.state.scroll_right(),
+				}
+				return CmdResult::Changed(self.state());
+			},
 			// Cmd::Submit => (),
 			// Cmd::Delete => (),
 			// Cmd::Cancel => (),

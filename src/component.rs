@@ -1,5 +1,7 @@
 //! Custom implementation of a tuirealm Tree View, specifically made for our usecase.
 
+use std::num::NonZeroUsize;
+
 use orx_tree::NodeRef;
 use tuirealm::{
 	AttrValue,
@@ -40,6 +42,8 @@ use crate::{
 // --- Custom Attributes
 const ATTR_INDENT: &str = "attr-indent";
 const ATTR_EMPTY_TREE: &str = "attr-empty-tree-text";
+const ATTR_HORIZ_SCROLL_STEP: &str = "attr-horiz-scroll-step";
+const ATTR_VERT_SCROLL_STEP: &str = "attr-vert-scroll-step";
 
 // --- Custom Commands
 pub const CMD_PG_UP: &str = "cmd-pg-down";
@@ -153,8 +157,32 @@ where
 	/// This can be used to set `Loading...` for example.
 	/// If this text is not applicable anymore, it can be changed via [`.attr`](Self::attr), or add a root node,
 	/// whichever is more applicable.
+	///
+	/// Default: [`DEFAULT_EMPTY_TREE_TEXT`](crate::widget::DEFAULT_EMPTY_TREE_TEXT)
 	pub fn empty_tree_text<S: Into<String>>(mut self, val: S) -> Self {
 		self.attr(Attribute::Custom(ATTR_EMPTY_TREE), AttrValue::String(val.into()));
+
+		return self;
+	}
+
+	/// Set a custom horizontal scroll step.
+	///
+	/// This only applies to scrolling via [`Cmd::Scroll`].
+	///
+	/// Default: `1`
+	pub fn scroll_step_horizontal(mut self, stepping: NonZeroUsize) -> Self {
+		self.state.set_horizontal_scroll_step(stepping);
+
+		return self;
+	}
+
+	/// Set a custom vertical scroll step.
+	///
+	/// This only applies to scrolling via [`Cmd::Scroll`].
+	///
+	/// Default: `1`
+	pub fn scroll_step_vertical(mut self, stepping: NonZeroUsize) -> Self {
+		self.state.set_vertical_scroll_step(stepping);
 
 		return self;
 	}
@@ -240,11 +268,29 @@ where
 	}
 
 	fn query(&self, attr: tuirealm::Attribute) -> Option<tuirealm::AttrValue> {
-		return self.props.get(attr);
+		return match attr {
+			Attribute::Custom(ATTR_HORIZ_SCROLL_STEP) => {
+				return Some(AttrValue::Length(self.state.get_horizontal_scroll_step().get()));
+			},
+			Attribute::Custom(ATTR_VERT_SCROLL_STEP) => {
+				return Some(AttrValue::Length(self.state.get_vertical_scroll_step().get()));
+			},
+			_ => self.props.get(attr),
+		};
 	}
 
 	fn attr(&mut self, attr: tuirealm::Attribute, value: tuirealm::AttrValue) {
-		self.props.set(attr, value);
+		match attr {
+			Attribute::Custom(ATTR_HORIZ_SCROLL_STEP) => {
+				let val = NonZeroUsize::new(value.unwrap_length()).unwrap();
+				self.state.set_horizontal_scroll_step(val);
+			},
+			Attribute::Custom(ATTR_VERT_SCROLL_STEP) => {
+				let val = NonZeroUsize::new(value.unwrap_length()).unwrap();
+				self.state.set_vertical_scroll_step(val);
+			},
+			_ => self.props.set(attr, value),
+		};
 	}
 
 	fn state(&self) -> tuirealm::State {

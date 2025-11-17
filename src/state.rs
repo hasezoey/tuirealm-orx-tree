@@ -1,3 +1,5 @@
+use std::num::NonZeroUsize;
+
 use orx_tree::{
 	Dfs,
 	NodeRef,
@@ -55,6 +57,7 @@ impl Offset {
 	}
 
 	/// Decrement the horizontal offset by `1`.
+	#[expect(dead_code)]
 	pub fn decr_horizontal(&mut self) {
 		self.x = self.x.saturating_sub(1);
 	}
@@ -70,6 +73,9 @@ impl Offset {
 	}
 }
 
+/// A [`NonZeroUsize`] that is `1`, compile-time checked.
+const ONE_NONEZERO: NonZeroUsize = NonZeroUsize::new(1).unwrap();
+
 /// The main state-keeper
 #[derive(Debug, Clone, PartialEq)]
 pub struct TreeViewState<V: NodeValue> {
@@ -80,6 +86,11 @@ pub struct TreeViewState<V: NodeValue> {
 	last_tree_size: Option<Rect>,
 	/// The offset to skip drawing.
 	display_offset: Offset,
+
+	/// Determines how many cells to step in a scroll.
+	scroll_step_horiz: NonZeroUsize,
+	/// Determines how many lines to step in a scroll.
+	scroll_step_verti: NonZeroUsize,
 }
 
 impl<V> Default for TreeViewState<V>
@@ -88,10 +99,12 @@ where
 {
 	fn default() -> Self {
 		return Self {
-			selected:       None,
-			open:           Vec::default(),
-			last_tree_size: None,
-			display_offset: Offset::default(),
+			selected:          None,
+			open:              Vec::default(),
+			last_tree_size:    None,
+			display_offset:    Offset::default(),
+			scroll_step_horiz: ONE_NONEZERO,
+			scroll_step_verti: ONE_NONEZERO,
 		};
 	}
 }
@@ -100,6 +113,30 @@ impl<V> TreeViewState<V>
 where
 	V: NodeValue,
 {
+	/// Set the horizontal scroll stepping.
+	///
+	/// Default: `1`
+	pub fn set_horizontal_scroll_step(&mut self, stepping: NonZeroUsize) {
+		self.scroll_step_horiz = stepping;
+	}
+
+	/// Set the vertical scroll stepping.
+	///
+	/// Default: `1`
+	pub fn set_vertical_scroll_step(&mut self, stepping: NonZeroUsize) {
+		self.scroll_step_verti = stepping;
+	}
+
+	/// Get the current horizontal scroll stepping.
+	pub fn get_horizontal_scroll_step(&self) -> NonZeroUsize {
+		return self.scroll_step_horiz;
+	}
+
+	/// Get the current vertical scroll stepping.
+	pub fn get_vertical_scroll_step(&self) -> NonZeroUsize {
+		return self.scroll_step_verti;
+	}
+
 	/// Is the given node selected?
 	pub fn is_selected(&self, node: &NodeIdx<V>) -> bool {
 		let Some(selected) = self.selected.as_ref() else {
@@ -507,15 +544,19 @@ where
 		}
 	}
 
-	/// Scroll Right by one cell.
+	/// Scroll Right by the set stepping.
 	pub fn scroll_right(&mut self) {
 		self.display_offset
-			.set_horizontal(self.display_offset.get_horizontal() + 1);
+			.set_horizontal(self.display_offset.get_horizontal() + self.get_horizontal_scroll_step().get());
 	}
 
-	/// Scroll Left by one cell.
+	/// Scroll Left by the set stepping.
 	pub fn scroll_left(&mut self) {
-		self.display_offset.decr_horizontal();
+		self.display_offset.set_horizontal(
+			self.display_offset
+				.get_horizontal()
+				.saturating_sub(self.get_horizontal_scroll_step().get()),
+		);
 	}
 
 	/// Scroll down by 1 line, but keep the current selection within view.
@@ -529,7 +570,7 @@ where
 			return;
 		};
 
-		self.set_vert_offset_down_clamped(current_pos, 1);
+		self.set_vert_offset_down_clamped(current_pos, self.get_vertical_scroll_step().get());
 	}
 
 	/// Calculate & set the display offset for downwards scroll motion.
@@ -554,7 +595,7 @@ where
 			return;
 		};
 
-		self.set_vert_offset_up_clamped(current_pos, 1);
+		self.set_vert_offset_up_clamped(current_pos, self.get_vertical_scroll_step().get());
 	}
 
 	/// Calculate & set the display offset for upwards scroll motion.

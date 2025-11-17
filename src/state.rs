@@ -517,6 +517,61 @@ where
 	pub fn scroll_left(&mut self) {
 		self.display_offset.decr_horizontal();
 	}
+
+	/// Scroll down by 1 line, but keep the current selection within view.
+	pub fn scroll_down(&mut self, tree: &Tree<V>) {
+		let Some(current_pos) = self
+			.selected()
+			.and_then(|v| return tree.get_node(v))
+			.and_then(|v| return self.get_offset_of_node(tree, &v.idx()))
+		else {
+			// no node is selected, or it is not valid anymore
+			return;
+		};
+
+		self.set_vert_offset_down_clamped(current_pos, 1);
+	}
+
+	/// Calculate & set the display offset for downwards scroll motion.
+	///
+	/// Will keep the given `node_offset` within view.
+	fn set_vert_offset_down_clamped(&mut self, node_offset: usize, by: usize) {
+		let old_offset = self.display_offset.get_vertical();
+
+		let new_offset = (old_offset + by).min(node_offset.saturating_sub(PREVIEW_DISTANCE));
+
+		self.display_offset.set_vertical(new_offset);
+	}
+
+	/// Scroll up by 1 line, but keep the current selection within view.
+	pub fn scroll_up(&mut self, tree: &Tree<V>) {
+		let Some(current_pos) = self
+			.selected()
+			.and_then(|v| return tree.get_node(v))
+			.and_then(|v| return self.get_offset_of_node(tree, &v.idx()))
+		else {
+			// no node is selected, or it is not valid anymore
+			return;
+		};
+
+		self.set_vert_offset_up_clamped(current_pos, 1);
+	}
+
+	/// Calculate & set the display offset for upwards scroll motion.
+	///
+	/// Will keep the given `node_offset` within view.
+	fn set_vert_offset_up_clamped(&mut self, node_offset: usize, by: usize) {
+		let area = self.last_tree_size.unwrap_or_default();
+		let height_as_usize = usize::from(area.height.saturating_sub(1));
+
+		let old_offset = self.display_offset.get_vertical();
+
+		let new_offset = old_offset
+			.saturating_sub(by)
+			.max(node_offset.saturating_sub(height_as_usize) + PREVIEW_DISTANCE);
+
+		self.display_offset.set_vertical(new_offset);
+	}
 }
 
 /// Manually implemented because [`Size`] does not currently implement [`PartialOrd`].

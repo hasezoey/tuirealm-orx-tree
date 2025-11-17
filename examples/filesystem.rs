@@ -179,6 +179,14 @@ impl Component<Msg, UserEvents> for FileSystemTree {
 				code: Key::Right,
 				modifiers: KeyModifiers::SHIFT,
 			}) => self.perform(Cmd::Scroll(Direction::Right)),
+			Event::Keyboard(KeyEvent {
+				code: Key::Down,
+				modifiers: KeyModifiers::SHIFT,
+			}) => self.perform(Cmd::Scroll(Direction::Down)),
+			Event::Keyboard(KeyEvent {
+				code: Key::Up,
+				modifiers: KeyModifiers::SHIFT,
+			}) => self.perform(Cmd::Scroll(Direction::Up)),
 
 			// Event::Keyboard(KeyEvent {
 			// 	code: Key::Home,

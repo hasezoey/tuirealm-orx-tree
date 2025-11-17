@@ -276,8 +276,8 @@ where
 			},
 			Cmd::Scroll(direction) => {
 				match direction {
-					Direction::Down => (),
-					Direction::Up => (),
+					Direction::Down => self.state.scroll_down(&self.tree),
+					Direction::Up => self.state.scroll_up(&self.tree),
 					Direction::Left => self.state.scroll_left(),
 					Direction::Right => self.state.scroll_right(),
 				}

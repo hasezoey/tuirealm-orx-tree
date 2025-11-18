@@ -190,7 +190,7 @@ where
 			line_area.height = 1;
 			let mut display_offset_horiz = remaining_offset.get_horizontal();
 
-			let clear_area = calc_area_with_offset(&mut display_offset_horiz, &mut line_area, indent);
+			let clear_area = calc_area_for_value(&mut display_offset_horiz, &mut line_area, indent);
 
 			// render the indent
 			Clear.render(clear_area, buf);
@@ -236,8 +236,8 @@ where
 	return true;
 }
 
-/// Calculate the area for `value`, removing that area from `available_area` and `display_offset`.
-fn calc_area_with_offset(display_offset_horiz: &mut usize, available_area: &mut Rect, value: usize) -> Rect {
+/// Calculate the area for `value`, removing that area from `available_area` and `display_offset_horiz`.
+pub fn calc_area_for_value(display_offset_horiz: &mut usize, available_area: &mut Rect, value: usize) -> Rect {
 	let draw_value = value.saturating_sub(*display_offset_horiz);
 
 	*display_offset_horiz = display_offset_horiz.saturating_sub(value.saturating_sub(draw_value));
@@ -300,7 +300,7 @@ impl<'a> RenderIndicator<'a> {
 
 	/// Render the symbol based on `open` in the given `available_area`, but modify it to remove the used area.
 	pub fn render(&self, display_offset_horiz: &mut usize, available_area: &mut Rect, buf: &mut Buffer, open: bool) {
-		let draw_area = calc_area_with_offset(display_offset_horiz, available_area, usize::from(self.allocate_length));
+		let draw_area = calc_area_for_value(display_offset_horiz, available_area, usize::from(self.allocate_length));
 
 		if draw_area.is_empty() {
 			return;

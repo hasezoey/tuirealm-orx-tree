@@ -1,3 +1,4 @@
+use std::num::NonZeroUsize;
 use std::sync::Arc;
 use std::sync::atomic::{
 	AtomicUsize,
@@ -28,12 +29,14 @@ use tuirealm::props::{
 	BorderType,
 	Borders,
 	Color,
+	Style,
 };
+use tuirealm::ratatui::buffer::Buffer;
 use tuirealm::ratatui::layout::{
 	Constraint,
 	Layout,
+	Rect,
 };
-use tuirealm::ratatui::text::Line;
 use tuirealm::terminal::{
 	CrosstermTerminalAdapter,
 	TerminalBridge,
@@ -79,22 +82,13 @@ impl FSTreeData {
 }
 
 impl NodeValue for FSTreeData {
-	fn get_text(&self, offset: usize) -> Line<'_> {
+	fn render(&self, buf: &mut Buffer, area: Rect, offset: usize, style: Style) {
 		let res = self
 			.as_str
 			.get_or_init(|| return self.path.file_name().unwrap().to_string_lossy().to_string());
 
-		let offset = res.len().min(offset);
-
-		let slice = &res[offset..];
-
-		// if the slice is empty, "Line" will not draw anything
-		// but we want to still draw the highlight style, even if the value itself is out-of-bounds
-		if slice.is_empty() {
-			return Line::raw(" ");
-		}
-
-		return Line::raw(slice);
+		// use "as_str" to skip "String::render" call
+		NodeValue::render(&res.as_str(), buf, area, offset, style);
 	}
 }
 
@@ -121,7 +115,8 @@ impl FileSystemTree {
 			)
 			// .inactive(Style::default().fg(Color::Gray))
 			.indent_size(2)
-			// .scroll_step(6)
+			.scroll_step_horizontal(NonZeroUsize::new(2).unwrap())
+			.empty_tree_text("Loading...")
 			.title(" Library ", Alignment::Left)
 			.highlight_color(Color::Yellow)
 			.highlight_symbol(">");

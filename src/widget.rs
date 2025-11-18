@@ -215,9 +215,7 @@ where
 
 			// render the main data
 			node.data()
-				.get_text(display_offset.get_horizontal())
-				.style(use_style)
-				.render(line_area, buf);
+				.render(buf, line_area, display_offset.get_horizontal(), use_style);
 
 			remaining_area.height = remaining_area.height.saturating_sub(1);
 			remaining_area.y += 1;

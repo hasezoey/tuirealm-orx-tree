@@ -41,18 +41,25 @@ use crate::{
 
 /// Custom attributes for [`Attribute::Custom`].
 pub mod attr {
+	/// Attribute to control the indent width (`* depth`)
 	pub const INDENT: &str = "indent";
+	/// Attribute to control the message to display on a empty tree
 	pub const EMPTY_TREE: &str = "empty-tree-text";
+	/// Attribute to control the horizontal scroll stepping
 	pub const HORIZ_SCROLL_STEP: &str = "horiz-scroll-step";
+	/// Attribute to control the vertical scroll stepping
 	pub const VERT_SCROLL_STEP: &str = "vert-scroll-step";
 }
 
 /// Custom commands for [`Cmd::Custom`] (/ [`TreeView::perform`]).
 pub mod cmd {
+	/// Command to run a "Page Down" selection
 	pub const PG_UP: &str = "pg-down";
+	/// Command to run a "Page Up" selection
 	pub const PG_DOWN: &str = "pg-up";
 }
 
+/// The TUIRealm TreeView component
 #[derive(Debug, Clone)]
 #[must_use]
 pub struct TreeView<V: NodeValue> {
@@ -128,7 +135,7 @@ where
 
 	/// Set a custom indent size.
 	///
-	/// Default: [`DEFAULT_INDENT`](crate::widget::DEFAULT_INDENT)
+	/// Default: [`DEFAULT_INDENT`]
 	pub fn indent_size(mut self, indent: usize) -> Self {
 		self.attr(Attribute::Custom(attr::INDENT), AttrValue::Length(indent));
 

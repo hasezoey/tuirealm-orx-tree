@@ -15,14 +15,14 @@
 //! #   CmdResult,
 //! # 	Direction,
 //! # };
-//!
+//! #
 //! type OurTree = TreeView<String>;
 //!
 //! #[derive(Debug, MockComponent)]
 //! struct OurComponent {
 //! 	component: OurTree
 //! }
-//!
+//! #
 //! # #[derive(Debug, Clone, PartialEq)]
 //! # enum Msg {
 //! #  ForceRedraw

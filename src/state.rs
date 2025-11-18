@@ -378,7 +378,7 @@ where
 		return self.selected.as_ref();
 	}
 
-	/// Change the [`Offset`] so that the currently selected node is always visible.
+	/// Change the display offset so that the currently selected node is always visible.
 	///
 	/// For example after a component size change.
 	pub fn clamp_offset_selected(&mut self, tree: &Tree<V>) {

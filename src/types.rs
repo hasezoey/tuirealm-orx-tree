@@ -22,13 +22,14 @@ pub type Node<'a, V: NodeValue> = orx_tree::Node<'a, Dyn<V>>;
 #[expect(type_alias_bounds)]
 pub type NodeMut<'a, V: NodeValue> = orx_tree::NodeMut<'a, Dyn<V>>;
 
+/// Controls how to render the given value in the tree.
 pub trait NodeValue {
 	/// Render the current value.
 	///
 	/// Also see [`Widget::render`].
 	fn render(&self, buf: &mut Buffer, area: Rect, offset: usize, style: Style);
 
-	/// Render with indicators.
+	/// Render with open/closed indicators, if applicable.
 	///
 	/// The default implementation makes use of [`RenderIndicator::default`] and renders the indicators
 	/// before the value itself, without applying the given style on the indicators.

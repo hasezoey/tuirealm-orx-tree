@@ -1,3 +1,5 @@
+//! Module for all the render parts
+
 use orx_tree::{
 	Dfs,
 	NodeRef,
@@ -27,13 +29,18 @@ use crate::{
 	},
 };
 
-/// The symbol to use to display before a node that is closed but has children
+/// The symbol to use to display before a node that is closed but has children.
+///
+/// It should be `▶`.
 pub const CHILD_CLOSED_INDICATOR: &str = "\u{25b6}";
 /// The symbol to use to display before a node that is open and has children
+///
+/// It should be `▼`.
 pub const CHILD_OPENED_INDICATOR: &str = "\u{25bc}";
 /// The length to allocate for the Indicators ([`CHILD_CLOSED_INDICATOR`] & [`CHILD_OPENED_INDICATOR`]).
 /// Any extra length not covered in the Indicators will be filled with space.
 pub const CHILD_INDICATOR_LENGTH: u16 = 2;
+/// Default indentation length (`* depth`)
 pub const DEFAULT_INDENT: usize = 2;
 /// Default text to display if the tree is empty.
 pub const DEFAULT_EMPTY_TREE_TEXT: &str = "The Tree is empty";
@@ -66,6 +73,7 @@ impl<'a, V> TreeWidget<'a, V>
 where
 	V: NodeValue,
 {
+	/// Create a new widget with the given tree and otherwise default values.
 	pub fn new(tree: &'a Tree<V>) -> Self {
 		return Self {
 			tree,
@@ -288,7 +296,6 @@ impl<'a> RenderIndicator<'a> {
 	///
 	/// Note: it should be ensured that `open` and `closed` are fitting within `length`.
 	/// This struct does not do grapheme / drawable length checking.
-	#[expect(dead_code)]
 	#[inline]
 	pub const fn new(open: &'a str, closed: &'a str, length: u16) -> Self {
 		return Self {

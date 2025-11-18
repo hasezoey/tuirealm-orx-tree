@@ -20,7 +20,6 @@ use tuirealm::{
 
 use crate::{
 	component::TreeViewState,
-	state::Offset,
 	types::{
 		Node,
 		NodeValue,
@@ -189,16 +188,16 @@ where
 			// so it must have at least one width and one height.
 			// This setting may not be necessary as we are currently rendering lines, but it is more correct to do this anyway.
 			calc_area.height = 1;
-			let mut display_offset = remaining_offset;
+			let mut display_offset_horiz = remaining_offset.get_horizontal();
 
-			let clear_area = calc_area_with_offset(&mut display_offset, &mut calc_area, indent);
+			let clear_area = calc_area_with_offset(&mut display_offset_horiz, &mut calc_area, indent);
 
 			// render the indent
 			Clear.render(clear_area, buf);
 
 			if !is_leaf {
 				RenderIndicator::default().render(
-					&mut display_offset,
+					&mut display_offset_horiz,
 					&mut calc_area,
 					buf,
 					state.is_opened(&node.idx()),
@@ -214,8 +213,7 @@ where
 			};
 
 			// render the main data
-			node.data()
-				.render(buf, line_area, display_offset.get_horizontal(), use_style);
+			node.data().render(buf, line_area, display_offset_horiz, use_style);
 
 			remaining_area.height = remaining_area.height.saturating_sub(1);
 			remaining_area.y += 1;
@@ -247,11 +245,10 @@ where
 }
 
 /// Calculate the area for `value`, removing that area from `available_area` and `display_offset`.
-fn calc_area_with_offset(display_offset: &mut Offset, available_area: &mut Rect, value: usize) -> Rect {
-	let disp_offset = display_offset.get_horizontal();
-	let draw_value = value.saturating_sub(disp_offset);
+fn calc_area_with_offset(display_offset_horiz: &mut usize, available_area: &mut Rect, value: usize) -> Rect {
+	let draw_value = value.saturating_sub(*display_offset_horiz);
 
-	display_offset.set_horizontal(disp_offset.saturating_sub(value.saturating_sub(draw_value)));
+	*display_offset_horiz = display_offset_horiz.saturating_sub(value.saturating_sub(draw_value));
 
 	// properly set "value_area" as there are
 	let mut value_area = *available_area;
@@ -310,8 +307,8 @@ impl<'a> RenderIndicator<'a> {
 	}
 
 	/// Render the symbol based on `open` in the given `available_area`, but modify it to remove the used area.
-	pub fn render(&self, display_offset: &mut Offset, available_area: &mut Rect, buf: &mut Buffer, open: bool) {
-		let draw_area = calc_area_with_offset(display_offset, available_area, usize::from(self.allocate_length));
+	pub fn render(&self, display_offset_horiz: &mut usize, available_area: &mut Rect, buf: &mut Buffer, open: bool) {
+		let draw_area = calc_area_with_offset(display_offset_horiz, available_area, usize::from(self.allocate_length));
 
 		if draw_area.is_empty() {
 			return;

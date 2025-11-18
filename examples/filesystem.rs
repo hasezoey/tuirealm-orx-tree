@@ -86,7 +86,15 @@ impl NodeValue for FSTreeData {
 
 		let offset = res.len().min(offset);
 
-		return Line::raw(&res[offset..]);
+		let slice = &res[offset..];
+
+		// if the slice is empty, "Line" will not draw anything
+		// but we want to still draw the highlight style, even if the value itself is out-of-bounds
+		if slice.is_empty() {
+			return Line::raw(" ");
+		}
+
+		return Line::raw(slice);
 	}
 }
 

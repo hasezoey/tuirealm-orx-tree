@@ -7,11 +7,18 @@ use tuirealm::{
 		buffer::Buffer,
 		layout::Rect,
 		text::Line,
-		widgets::Widget,
+		widgets::{
+			Clear,
+			Widget,
+		},
 	},
 };
 
-use crate::widget::RenderIndicator;
+use crate::widget::{
+	CHILD_INDICATOR_LENGTH,
+	RenderIndicator,
+	calc_area_for_value,
+};
 
 #[expect(type_alias_bounds)]
 pub type Tree<V: NodeValue> = orx_tree::DynTree<V>;
@@ -44,7 +51,12 @@ pub trait NodeValue {
 		is_leaf: bool,
 		is_opened: impl FnOnce() -> bool,
 	) {
-		if !is_leaf {
+		if is_leaf {
+			// indent leaf nodes by what is taken up on the parent by the indicators, otherwise children and the parent would have the same visible indent
+			let leaf_indent = CHILD_INDICATOR_LENGTH;
+			let indent_area = calc_area_for_value(&mut offset, &mut area, usize::from(leaf_indent));
+			Clear.render(indent_area, buf);
+		} else {
 			RenderIndicator::default().render(&mut offset, &mut area, buf, is_opened());
 		}
 

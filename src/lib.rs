@@ -70,3 +70,9 @@ mod props_ext;
 mod state;
 pub mod types;
 pub mod widget;
+
+// re-exports
+pub use orx_tree::{
+	NodeMut,
+	NodeRef,
+};

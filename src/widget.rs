@@ -183,7 +183,6 @@ where
 
 			// get the indent for this node to visually indicate it is part of something
 			let indent = depth * self.indent_size;
-			let indent = u16::try_from(indent).unwrap_or(u16::MAX);
 
 			let mut calc_area = remaining_area;
 			// This can be done without clamping, as we at this point know that the area is not empty,
@@ -250,16 +249,15 @@ where
 }
 
 /// Calculate the area for `value`, removing that area from `available_area` and `display_offset`.
-// TODO: take usize
-fn calc_area_with_offset(display_offset: &mut Offset, available_area: &mut Rect, value: u16) -> Rect {
+fn calc_area_with_offset(display_offset: &mut Offset, available_area: &mut Rect, value: usize) -> Rect {
 	let disp_offset = display_offset.get_horizontal();
-	let draw_value = value.saturating_sub(u16::try_from(disp_offset).unwrap_or(u16::MAX));
+	let draw_value = value.saturating_sub(disp_offset);
 
-	display_offset.set_horizontal(disp_offset.saturating_sub(usize::from(value.saturating_sub(draw_value))));
+	display_offset.set_horizontal(disp_offset.saturating_sub(value.saturating_sub(draw_value)));
 
 	// properly set "value_area" as there are
 	let mut value_area = *available_area;
-	value_area.width = value_area.width.min(draw_value);
+	value_area.width = value_area.width.min(u16::try_from(draw_value).unwrap_or(u16::MAX));
 
 	// remove "value_area" from "available_area"
 	// sadly there is no built-in "Rect" function to remove a specific section
@@ -315,7 +313,7 @@ impl<'a> RenderIndicator<'a> {
 
 	/// Render the symbol based on `open` in the given `available_area`, but modify it to remove the used area.
 	pub fn render(&self, display_offset: &mut Offset, available_area: &mut Rect, buf: &mut Buffer, open: bool) {
-		let draw_area = calc_area_with_offset(display_offset, available_area, self.allocate_length);
+		let draw_area = calc_area_with_offset(display_offset, available_area, usize::from(self.allocate_length));
 
 		if draw_area.is_empty() {
 			return;

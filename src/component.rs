@@ -212,6 +212,13 @@ where
 
 		return self;
 	}
+
+	/// Get the currently selected node, if there is one and it still being valid.
+	///
+	/// This can be used as a [`Cmd::Submit`] substitute.
+	pub fn get_current_selected_node(&self) -> Option<Node<'_, V>> {
+		return self.state.selected().and_then(|v| return self.tree.get_node(v));
+	}
 }
 
 impl<V> MockComponent for TreeView<V>
@@ -331,6 +338,22 @@ where
 		}
 	}
 
+	/// This Component implements the following Commands:
+	/// - [`Cmd::Move`]:
+	///   - [`Direction::Down`] & [`Direction::Up`]: change selection in that direction, if possible
+	///   - [`Direction::Left`] & [`Direction::Right`]: open / close the current node, if possibke
+	/// - [`Cmd::GoTo`]:
+	///   - [`Position::Begin`]: change selection to be the root node
+	///   - [`Position::End`]: change selection to be the last child of the last open node
+	///   - [`Position::At`]: unimplemented as `usize` does not translate well to the tree
+	/// - [`Cmd::Scroll`]:
+	///   - [`Direction::Down`] & [`Direction::Up`]: scroll down / up without moving the selection; always keeps the selection within view
+	///   - [`Direction::Left`] & [`Direction::Right`]: scroll left / right (scroll is unbounded)
+	/// - [`Cmd::Custom`]:
+	///   - [`cmd::PG_DOWN`]: change selection to be one page down (based on last known draw height)
+	///   - [`cmd::PG_UP`]: change selection to be one page up (based on last known draw height)
+	///
+	/// Note that [`Cmd::Submit`] and [`Cmd::Delete`] are **NOT** implemented and need to be done manually (ex via [`get_current_selected_node`](Self::get_current_selected_node) on submit action).
 	fn perform(&mut self, cmd: Cmd) -> CmdResult {
 		match cmd {
 			Cmd::Move(direction) => {
@@ -377,13 +400,13 @@ where
 				}
 				return CmdResult::Changed(self.state());
 			},
-			// Cmd::Submit => (),
-			// Cmd::Delete => (),
 			// Cmd::Cancel => (),
 			// Cmd::Toggle => (),
 			// Cmd::Change => (),
-			// Cmd::Custom(_) => (),
 			_ => return CmdResult::None,
+			// explicitly unimplemented
+			// Cmd::Submit => (),
+			// Cmd::Delete => (),
 		}
 	}
 }

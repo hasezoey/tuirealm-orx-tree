@@ -25,7 +25,10 @@ use tuirealm::{
 	ratatui::layout::Rect,
 };
 
-pub use crate::state::TreeViewState;
+pub use crate::state::{
+	PREVIEW_DISTANCE_DEFAULT,
+	TreeViewState,
+};
 use crate::{
 	props_ext::PropsExt,
 	types::{
@@ -194,6 +197,18 @@ where
 	/// Default: `1`
 	pub fn scroll_step_vertical(mut self, stepping: NonZeroUsize) -> Self {
 		self.state.set_vertical_scroll_step(stepping);
+
+		return self;
+	}
+
+	/// Set a custom vertical preview distance.
+	///
+	/// This value keeps at least `distance` amount of element before / after the selection on scroll.
+	/// Note that this distance is reduced when there is not enough area to display.
+	///
+	/// Default: [`PREVIEW_DISTANCE_DEFAULT`]
+	pub fn preview_distance_vertical(mut self, distance: u16) -> Self {
+		self.state.set_preview_distance_horizontal(distance);
 
 		return self;
 	}

@@ -24,7 +24,7 @@ use crate::{
 /// The distance to preview instead of always having the last displayed element be the selected one.
 ///
 /// Note that this distance is reduced when there is not enough area to display.
-const PREVIEW_DISTANCE: usize = 2;
+pub const PREVIEW_DISTANCE_DEFAULT: u16 = 2;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub(crate) struct Offset {
@@ -91,6 +91,10 @@ pub struct TreeViewState<V: NodeValue> {
 	scroll_step_horiz: NonZeroUsize,
 	/// Determines how many lines to step in a scroll.
 	scroll_step_verti: NonZeroUsize,
+
+	/// Determines the vertical amount of elements to display before/after the selection
+	/// (depending on motion direction).
+	preview_distance_vertical: usize,
 }
 
 impl<V> Default for TreeViewState<V>
@@ -99,12 +103,13 @@ where
 {
 	fn default() -> Self {
 		return Self {
-			selected:          None,
-			open:              Vec::default(),
-			last_tree_size:    None,
-			display_offset:    Offset::default(),
+			selected: None,
+			open: Vec::default(),
+			last_tree_size: None,
+			display_offset: Offset::default(),
 			scroll_step_horiz: ONE_NONEZERO,
 			scroll_step_verti: ONE_NONEZERO,
+			preview_distance_vertical: usize::from(PREVIEW_DISTANCE_DEFAULT),
 		};
 	}
 }
@@ -125,6 +130,16 @@ where
 	/// Default: `1`
 	pub fn set_vertical_scroll_step(&mut self, stepping: NonZeroUsize) {
 		self.scroll_step_verti = stepping;
+	}
+
+	/// Set a custom vertical preview distance.
+	///
+	/// This value keeps at least `distance` amount of element before / after the selection on scroll.
+	/// Note that this distance is reduced when there is not enough area to display.
+	///
+	/// Default: [`PREVIEW_DISTANCE_DEFAULT`]
+	pub fn set_preview_distance_horizontal(&mut self, distance: u16) {
+		self.preview_distance_vertical = usize::from(distance);
 	}
 
 	/// Get the current horizontal scroll stepping.
@@ -187,9 +202,10 @@ where
 
 		let old_offset = self.display_offset.get_vertical();
 
-		if (old_offset + height_as_usize).saturating_sub(PREVIEW_DISTANCE) < node_offset {
-			self.display_offset
-				.set_vertical(node_offset.saturating_sub(height_as_usize.saturating_sub(PREVIEW_DISTANCE)));
+		if (old_offset + height_as_usize).saturating_sub(self.preview_distance_vertical) < node_offset {
+			self.display_offset.set_vertical(
+				node_offset.saturating_sub(height_as_usize.saturating_sub(self.preview_distance_vertical)),
+			);
 		}
 	}
 
@@ -199,9 +215,9 @@ where
 	fn set_vert_offset_up(&mut self, node_offset: usize) {
 		let old_offset = self.display_offset.get_vertical();
 
-		if old_offset > node_offset.saturating_sub(PREVIEW_DISTANCE) {
+		if old_offset > node_offset.saturating_sub(self.preview_distance_vertical) {
 			self.display_offset
-				.set_vertical(node_offset.saturating_sub(PREVIEW_DISTANCE));
+				.set_vertical(node_offset.saturating_sub(self.preview_distance_vertical));
 		}
 	}
 
@@ -261,7 +277,7 @@ where
 		self.select(next);
 	}
 
-	/// Select the last element (minus [`PREVIEW_DISTANCE`]) in current view, if that is already selected, scroll down by `area.height - PREVIEW_DISTANCE`.
+	/// Select the last element (minus [`PREVIEW_DISTANCE_DEFAULT`]) in current view, if that is already selected, scroll down by `area.height - self.preview_distance_vertical`.
 	pub fn select_pg_down(&mut self, tree: &Tree<V>) {
 		// TODO: do a more efficient implementation
 		// first get the offset of the currently selected node
@@ -275,13 +291,14 @@ where
 		let height_as_usize = usize::from(area.height.saturating_sub(1));
 
 		// get how many iterations / lines to scroll by, depending on if we are on the last visible element or somewhere in-between
-		let mut iterations = if (old_offset + height_as_usize).saturating_sub(PREVIEW_DISTANCE) > offset_curr_sel {
-			(old_offset + height_as_usize)
-				.saturating_sub(PREVIEW_DISTANCE)
-				.saturating_sub(offset_curr_sel)
-		} else {
-			height_as_usize.saturating_sub(PREVIEW_DISTANCE)
-		};
+		let mut iterations =
+			if (old_offset + height_as_usize).saturating_sub(self.preview_distance_vertical) > offset_curr_sel {
+				(old_offset + height_as_usize)
+					.saturating_sub(self.preview_distance_vertical)
+					.saturating_sub(offset_curr_sel)
+			} else {
+				height_as_usize.saturating_sub(self.preview_distance_vertical)
+			};
 
 		let Some(mut next) = self
 			.selected()
@@ -317,7 +334,7 @@ where
 		self.select(Some(next));
 	}
 
-	/// Select the first element (minus [`PREVIEW_DISTANCE`]) in current view, if that is already selected, scroll up by `area.height - PREVIEW_DISTANCE`.
+	/// Select the first element (minus [`PREVIEW_DISTANCE_DEFAULT`]) in current view, if that is already selected, scroll up by `area.height - self.preview_distance_vertical`.
 	pub fn select_pg_up(&mut self, tree: &Tree<V>) {
 		// TODO: do a more efficient implementation
 		// first get the offset of the currently selected node
@@ -331,12 +348,12 @@ where
 		let height_as_usize = usize::from(area.height.saturating_sub(1));
 
 		// get how many iterations / lines to scroll by, depending on if we are on the first visible element or somewhere in-between
-		let mut iterations = if old_offset < offset_curr_sel.saturating_sub(PREVIEW_DISTANCE) {
+		let mut iterations = if old_offset < offset_curr_sel.saturating_sub(self.preview_distance_vertical) {
 			offset_curr_sel
 				.saturating_sub(old_offset)
-				.saturating_sub(PREVIEW_DISTANCE)
+				.saturating_sub(self.preview_distance_vertical)
 		} else {
-			height_as_usize.saturating_sub(PREVIEW_DISTANCE)
+			height_as_usize.saturating_sub(self.preview_distance_vertical)
 		};
 
 		let Some(mut next) = self
@@ -579,7 +596,7 @@ where
 	fn set_vert_offset_down_clamped(&mut self, node_offset: usize, by: usize) {
 		let old_offset = self.display_offset.get_vertical();
 
-		let new_offset = (old_offset + by).min(node_offset.saturating_sub(PREVIEW_DISTANCE));
+		let new_offset = (old_offset + by).min(node_offset.saturating_sub(self.preview_distance_vertical));
 
 		self.display_offset.set_vertical(new_offset);
 	}
@@ -609,7 +626,7 @@ where
 
 		let new_offset = old_offset
 			.saturating_sub(by)
-			.max(node_offset.saturating_sub(height_as_usize) + PREVIEW_DISTANCE);
+			.max(node_offset.saturating_sub(height_as_usize) + self.preview_distance_vertical);
 
 		self.display_offset.set_vertical(new_offset);
 	}

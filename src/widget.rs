@@ -193,6 +193,9 @@ where
 
 			let clear_area = calc_area_with_offset(&mut display_offset, &mut calc_area, indent);
 
+			// render the indent
+			Clear.render(clear_area, buf);
+
 			if !is_leaf {
 				RenderIndicator::default().render(
 					&mut display_offset,
@@ -203,9 +206,6 @@ where
 			}
 
 			let line_area = calc_area;
-
-			// render the indent
-			Clear.render(clear_area, buf);
 
 			let use_style = if state.is_selected(&node.idx()) {
 				self.hg_style

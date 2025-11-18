@@ -186,8 +186,6 @@ where
 				continue;
 			}
 
-			let is_leaf = node.num_children() == 0;
-
 			// get the indent for this node to visually indicate it is part of something
 			let indent = depth * self.indent_size;
 
@@ -211,7 +209,7 @@ where
 
 			// render the main data
 			node.data()
-				.render_with_indicators(buf, line_area, display_offset_horiz, use_style, is_leaf, || {
+				.render_with_indicators(buf, line_area, display_offset_horiz, use_style, node.is_leaf(), || {
 					return state.is_opened(&node.idx());
 				});
 

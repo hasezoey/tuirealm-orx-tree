@@ -183,28 +183,17 @@ where
 			// get the indent for this node to visually indicate it is part of something
 			let indent = depth * self.indent_size;
 
-			let mut calc_area = remaining_area;
+			let mut line_area = remaining_area;
 			// This can be done without clamping, as we at this point know that the area is not empty,
 			// so it must have at least one width and one height.
 			// This setting may not be necessary as we are currently rendering lines, but it is more correct to do this anyway.
-			calc_area.height = 1;
+			line_area.height = 1;
 			let mut display_offset_horiz = remaining_offset.get_horizontal();
 
-			let clear_area = calc_area_with_offset(&mut display_offset_horiz, &mut calc_area, indent);
+			let clear_area = calc_area_with_offset(&mut display_offset_horiz, &mut line_area, indent);
 
 			// render the indent
 			Clear.render(clear_area, buf);
-
-			if !is_leaf {
-				RenderIndicator::default().render(
-					&mut display_offset_horiz,
-					&mut calc_area,
-					buf,
-					state.is_opened(&node.idx()),
-				);
-			}
-
-			let line_area = calc_area;
 
 			let use_style = if state.is_selected(&node.idx()) {
 				self.hg_style
@@ -213,7 +202,10 @@ where
 			};
 
 			// render the main data
-			node.data().render(buf, line_area, display_offset_horiz, use_style);
+			node.data()
+				.render_with_indicators(buf, line_area, display_offset_horiz, use_style, is_leaf, || {
+					return state.is_opened(&node.idx());
+				});
 
 			remaining_area.height = remaining_area.height.saturating_sub(1);
 			remaining_area.y += 1;
@@ -272,7 +264,7 @@ fn calc_area_with_offset(display_offset_horiz: &mut usize, available_area: &mut 
 ///
 /// Example: if `123` is input as a symbol and `4` as the length, then it will only display `123 ` or `   `(offset 1), never `23 `.
 #[derive(Debug, Clone)]
-struct RenderIndicator<'a> {
+pub struct RenderIndicator<'a> {
 	/// The indicator text to draw for the "opened" state
 	open:            &'a str,
 	/// The indicator text to draw for the "closed" state

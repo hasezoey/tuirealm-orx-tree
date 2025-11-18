@@ -11,6 +11,8 @@ use tuirealm::{
 	},
 };
 
+use crate::widget::RenderIndicator;
+
 #[expect(type_alias_bounds)]
 pub type Tree<V: NodeValue> = orx_tree::DynTree<V>;
 #[expect(type_alias_bounds)]
@@ -25,6 +27,28 @@ pub trait NodeValue {
 	///
 	/// Also see [`Widget::render`].
 	fn render(&self, buf: &mut Buffer, area: Rect, offset: usize, style: Style);
+
+	/// Render with indicators.
+	///
+	/// The default implementation makes use of [`RenderIndicator::default`] and renders the indicators
+	/// before the value itself, without applying the given style on the indicators.
+	///
+	/// Note: `open` is a function as it could be a expensive lookup.
+	fn render_with_indicators(
+		&self,
+		buf: &mut Buffer,
+		mut area: Rect,
+		mut offset: usize,
+		style: Style,
+		is_leaf: bool,
+		is_opened: impl FnOnce() -> bool,
+	) {
+		if !is_leaf {
+			RenderIndicator::default().render(&mut offset, &mut area, buf, is_opened());
+		}
+
+		self.render(buf, area, offset, style);
+	}
 }
 
 impl NodeValue for &str {

@@ -189,6 +189,10 @@ where
 			let child_sym_length = if is_leaf { 0 } else { CHILD_INDICATOR_LENGTH };
 
 			let mut calc_area = remaining_area;
+			// This can be done without clamping, as we at this point know that the area is not empty,
+			// so it must have at least one width and one height.
+			// This setting may not be necessary as we are currently rendering lines, but it is more correct to do this anyway.
+			calc_area.height = 1;
 			let mut display_offset = remaining_offset;
 
 			let clear_area = calc_area_with_offset(&mut display_offset, &mut calc_area, indent);

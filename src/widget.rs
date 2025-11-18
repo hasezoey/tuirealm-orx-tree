@@ -182,11 +182,8 @@ where
 			let is_leaf = node.num_children() == 0;
 
 			// get the indent for this node to visually indicate it is part of something
-			let indent_leaf = if is_leaf { CHILD_INDICATOR_LENGTH } else { 0 };
-			let indent = (depth * self.indent_size) + usize::from(indent_leaf);
+			let indent = depth * self.indent_size;
 			let indent = u16::try_from(indent).unwrap_or(u16::MAX);
-
-			let child_sym_length = if is_leaf { 0 } else { CHILD_INDICATOR_LENGTH };
 
 			let mut calc_area = remaining_area;
 			// This can be done without clamping, as we at this point know that the area is not empty,
@@ -196,23 +193,20 @@ where
 			let mut display_offset = remaining_offset;
 
 			let clear_area = calc_area_with_offset(&mut display_offset, &mut calc_area, indent);
-			let child_sym = calc_area_with_offset(&mut display_offset, &mut calc_area, child_sym_length);
+
+			if !is_leaf {
+				RenderIndicator::default().render(
+					&mut display_offset,
+					&mut calc_area,
+					buf,
+					state.is_opened(&node.idx()),
+				);
+			}
 
 			let line_area = calc_area;
 
 			// render the indent
 			Clear.render(clear_area, buf);
-
-			// render the indicators
-			if !is_leaf && !child_sym.is_empty() {
-				let sym = if state.is_opened(&node.idx()) {
-					CHILD_OPENED_INDICATOR
-				} else {
-					CHILD_CLOSED_INDICATOR
-				};
-
-				sym.render(child_sym, buf);
-			}
 
 			let use_style = if state.is_selected(&node.idx()) {
 				self.hg_style
@@ -256,6 +250,7 @@ where
 }
 
 /// Calculate the area for `value`, removing that area from `available_area` and `display_offset`.
+// TODO: take usize
 fn calc_area_with_offset(display_offset: &mut Offset, available_area: &mut Rect, value: u16) -> Rect {
 	let disp_offset = display_offset.get_horizontal();
 	let draw_value = value.saturating_sub(u16::try_from(disp_offset).unwrap_or(u16::MAX));
@@ -273,4 +268,69 @@ fn calc_area_with_offset(display_offset: &mut Offset, available_area: &mut Rect,
 	available_area.x += offset;
 
 	return value_area;
+}
+
+/// Render the open / closed symbol in the given area.
+///
+/// Note that `cell_width` is the width of the biggest grapheme cluster of `open` & `closed`.
+///
+/// Limitation: this implementation expects only a single drawable character in `open` and `closed`,
+/// if more are provided, they will only be drawn in full or not at all.
+///
+/// Example: if `123` is input as a symbol and `4` as the length, then it will only display `123 ` or `   `(offset 1), never `23 `.
+#[derive(Debug, Clone)]
+struct RenderIndicator<'a> {
+	/// The indicator text to draw for the "opened" state
+	open:            &'a str,
+	/// The indicator text to draw for the "closed" state
+	closed:          &'a str,
+	/// The cell length to allocate for the symbols
+	allocate_length: u16,
+}
+
+impl Default for RenderIndicator<'static> {
+	fn default() -> Self {
+		return Self {
+			open:            CHILD_OPENED_INDICATOR,
+			closed:          CHILD_CLOSED_INDICATOR,
+			allocate_length: CHILD_INDICATOR_LENGTH,
+		};
+	}
+}
+
+impl<'a> RenderIndicator<'a> {
+	/// Create a new instance with custom indicators.
+	///
+	/// Note: it should be ensured that `open` and `closed` are fitting within `length`.
+	/// This struct does not do grapheme / drawable length checking.
+	#[expect(dead_code)]
+	#[inline]
+	pub const fn new(open: &'a str, closed: &'a str, length: u16) -> Self {
+		return Self {
+			open,
+			closed,
+			allocate_length: length,
+		};
+	}
+
+	/// Render the symbol based on `open` in the given `available_area`, but modify it to remove the used area.
+	pub fn render(&self, display_offset: &mut Offset, available_area: &mut Rect, buf: &mut Buffer, open: bool) {
+		let draw_area = calc_area_with_offset(display_offset, available_area, self.allocate_length);
+
+		if draw_area.is_empty() {
+			return;
+		}
+
+		// clear the area in case allocated length is higher than the symbol length
+		Clear.render(draw_area, buf);
+
+		let symbol = if open { self.open } else { self.closed };
+
+		// Only draw the symbol in full and only at the beginning.
+		// This limitation is because we dont count grapheme length
+		// and can arbitrarily index into the string.
+		if draw_area.width >= self.allocate_length {
+			symbol.render(draw_area, buf);
+		}
+	}
 }

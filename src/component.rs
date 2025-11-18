@@ -341,7 +341,8 @@ where
 	/// This Component implements the following Commands:
 	/// - [`Cmd::Move`]:
 	///   - [`Direction::Down`] & [`Direction::Up`]: change selection in that direction, if possible
-	///   - [`Direction::Left`] & [`Direction::Right`]: open / close the current node, if possibke
+	///   - [`Direction::Left`] & [`Direction::Right`]: open / close the current node, if possible
+	/// - [`Cmd::Toggle`]: open / close the current node, if possible
 	/// - [`Cmd::GoTo`]:
 	///   - [`Position::Begin`]: change selection to be the root node
 	///   - [`Position::End`]: change selection to be the last child of the last open node
@@ -399,6 +400,19 @@ where
 					Direction::Right => self.state.scroll_right(),
 				}
 				return CmdResult::Changed(self.state());
+			},
+			Cmd::Toggle => {
+				if let Some(nodeidx) = self.state.selected().cloned() {
+					if self.state.is_opened(&nodeidx) {
+						self.state.close(&nodeidx);
+					} else {
+						self.state.open(nodeidx);
+					}
+
+					return CmdResult::Changed(self.state());
+				}
+
+				return CmdResult::None;
 			},
 			// Cmd::Cancel => (),
 			// Cmd::Toggle => (),

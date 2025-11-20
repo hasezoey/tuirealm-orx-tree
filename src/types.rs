@@ -1,6 +1,9 @@
 //! Type Aliases
 
-use orx_tree::Dyn;
+use orx_tree::{
+	Dyn,
+	Lazy,
+};
 use tuirealm::{
 	props::Style,
 	ratatui::{
@@ -20,14 +23,16 @@ use crate::widget::{
 	calc_area_for_value,
 };
 
+// Note that we use MemoryPolicy "Lazy" here as anything else could implicitly invalidate all NodeIdx.
+// This way, the memory reclaim will be a explicit-only operation.
 #[expect(type_alias_bounds)]
-pub type Tree<V: NodeValue> = orx_tree::DynTree<V>;
+pub type Tree<V: NodeValue> = orx_tree::DynTree<V, Lazy>;
 #[expect(type_alias_bounds)]
 pub type NodeIdx<V: NodeValue> = orx_tree::NodeIdx<Dyn<V>>;
 #[expect(type_alias_bounds)]
-pub type Node<'a, V: NodeValue> = orx_tree::Node<'a, Dyn<V>>;
+pub type Node<'a, V: NodeValue> = orx_tree::Node<'a, Dyn<V>, Lazy>;
 #[expect(type_alias_bounds)]
-pub type NodeMut<'a, V: NodeValue> = orx_tree::NodeMut<'a, Dyn<V>>;
+pub type NodeMut<'a, V: NodeValue> = orx_tree::NodeMut<'a, Dyn<V>, Lazy>;
 
 /// Controls how to render the given value in the tree.
 pub trait NodeValue {

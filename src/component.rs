@@ -33,6 +33,8 @@ use crate::{
 	props_ext::PropsExt,
 	types::{
 		Node,
+		NodeIdx,
+		NodeMut,
 		NodeValue,
 		Tree,
 	},
@@ -218,6 +220,47 @@ where
 	/// This can be used as a [`Cmd::Submit`] substitute.
 	pub fn get_current_selected_node(&self) -> Option<Node<'_, V>> {
 		return self.state.selected().and_then(|v| return self.tree.get_node(v));
+	}
+
+	/// Get the current tree.
+	pub fn get_tree(&self) -> &Tree<V> {
+		return &self.tree;
+	}
+
+	/// Get the current tree mutably.
+	/// Instead of this function, other functions like [`get_node_mut`] should be used instead.
+	///
+	/// # Safety
+	///
+	/// Running any function which invalidates indices will break the selection & open nodes.
+	pub unsafe fn get_tree_mut(&mut self) -> &mut Tree<V> {
+		return &mut self.tree;
+	}
+
+	/// Get the node for the given index.
+	///
+	/// A node is only returned if:
+	/// - the node still exists in the tree
+	/// - the idx is for a node in the *current* tree
+	/// - no memory changes have happened and the node is still valid.
+	///
+	/// See [`NodeIdx`] documentation.
+	pub fn get_node(&self, idx: &NodeIdx<V>) -> Option<Node<'_, V>> {
+		return self.tree.get_node(idx);
+	}
+
+	/// Get the node for the given index mutably.
+	///
+	/// A node is only returned if:
+	/// - the node still exists in the tree
+	/// - the idx is for a node in the *current* tree
+	/// - no memory changes have happened and the node is still valid.
+	///
+	/// See [`NodeIdx`] documentation.
+	///
+	///
+	pub fn get_node_mut(&mut self, idx: &NodeIdx<V>) -> Option<NodeMut<'_, V>> {
+		return self.tree.get_node_mut(idx);
 	}
 }
 

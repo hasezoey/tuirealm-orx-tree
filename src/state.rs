@@ -175,6 +175,19 @@ where
 		self.open.retain(|v| return v != node);
 	}
 
+	/// Get all open nodes.
+	pub(crate) fn get_all_open(&self) -> &[NodeIdx<V>] {
+		return &self.open;
+	}
+
+	/// Force-overwrite all open nodes with a new value.
+	///
+	/// This is necessary after a memory reclaim which potentially invalidates [`NodeIdx`]'s
+	/// and have to be re-generated.
+	pub(crate) fn overwrite_open(&mut self, open: Vec<NodeIdx<V>>) {
+		self.open = open;
+	}
+
 	/// Select a specific node or unselect the current node by setting it to `None`.
 	///
 	/// NOTE: this does *not* change the offset.

@@ -262,6 +262,95 @@ where
 	pub fn get_node_mut(&mut self, idx: &NodeIdx<V>) -> Option<NodeMut<'_, V>> {
 		return self.tree.get_node_mut(idx);
 	}
+
+	/// Try reclaiming memory.
+	///
+	/// This will only reclaim memory if utilization is below ~93.75% (see [`AutoWithThreshold`](orx_tree::AutoWithThreshold)).
+	///
+	/// # Safety
+	///
+	/// This will invalidate all `NodeIdx` that are not tracked in [`TreeViewState`] (like selected & open).
+	pub unsafe fn try_reclaim_memory(&mut self) {
+		// generate a stable path
+		let selected = self.state.selected().and_then(|v| return self.nodeidx_to_path(v));
+		let open = self
+			.state
+			.get_all_open()
+			.iter()
+			.filter_map(|v| return self.nodeidx_to_path(v))
+			.collect::<Vec<_>>();
+
+		// run the reclaim that potentially invalidates all the indicies
+		unsafe {
+			self.run_reclaim();
+		}
+
+		// re-gain NodeIdx's from the stable paths, if possible
+		if let Some(path) = selected {
+			self.state.select(self.path_to_nodeidx(&path));
+		}
+
+		let open = open
+			.into_iter()
+			.filter_map(|v| return self.path_to_nodeidx(&v))
+			.collect::<Vec<_>>();
+		self.state.overwrite_open(open);
+	}
+
+	/// Convert a [`NodeIdx`] to a stable path (sibling idx).
+	///
+	/// The Path returned will be the path relative to root (ie the first value in the path is the root's child).
+	///
+	/// This path is stable across node invalidation through memory reclamation.
+	/// It is **not** stable across node movement or deletion.
+	fn nodeidx_to_path(&self, nodeidx: &NodeIdx<V>) -> Option<Vec<usize>> {
+		let mut path = Vec::new();
+
+		let mut next_node = self.tree.get_node(nodeidx)?;
+
+		loop {
+			// we dont want to add the root node into the path
+			let Some(parent) = next_node.parent() else {
+				break;
+			};
+
+			path.push(next_node.sibling_idx());
+
+			next_node = parent;
+		}
+
+		// reverse as the added path are depth to root
+		// but we need to return root to depth
+		path.reverse();
+
+		return Some(path);
+	}
+
+	/// Convert a path to a [`NodeIdx`] again.
+	///
+	/// The path expected is without the root_node (ie starting with the root's child idx).
+	fn path_to_nodeidx(&self, path: &[usize]) -> Option<NodeIdx<V>> {
+		let mut next_node = self.tree.get_root()?;
+
+		for idx in path.iter().copied() {
+			next_node = next_node.get_child(idx)?;
+		}
+
+		return Some(next_node.idx());
+	}
+
+	/// Run the actual reclaim
+	///
+	/// # Safety
+	///
+	/// This function does *not* re-validate [`TreeViewState`] `NodeIdx`'s
+	unsafe fn run_reclaim(&mut self) {
+		let tree = std::mem::take(&mut self.tree);
+		// run the reclaim
+		let actual_tree = tree.into_auto_reclaim_with_threshold::<4>();
+
+		self.tree = actual_tree.into_lazy_reclaim();
+	}
 }
 
 impl<V> MockComponent for TreeView<V>
@@ -465,5 +554,56 @@ where
 			// Cmd::Submit => (),
 			// Cmd::Delete => (),
 		}
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use orx_tree::NodeRef;
+	use pretty_assertions::assert_eq;
+
+	use crate::{
+		component::TreeView,
+		types::Tree,
+	};
+
+	#[test]
+	fn should_have_stable_paths() {
+		let mut tree = Tree::default();
+		tree.push_root("root");
+		let mut root_node = tree.root_mut();
+
+		root_node.push_child("root child 1");
+		root_node.push_child("root child 2");
+		root_node.push_child("root child 3");
+
+		let mut node = root_node.get_child_mut(1).unwrap();
+		node.push_child("c1 1");
+		node.push_child("c1 2");
+		node.push_child("c1 3");
+
+		let mut node = node.get_child_mut(2).unwrap();
+		node.push_child("c2 1");
+		node.push_child("c2 2");
+		node.push_child("c2 3");
+		let idx = node.push_child("c2 4");
+
+		let component = TreeView::new_tree(tree);
+
+		let path = component.nodeidx_to_path(&idx).unwrap();
+
+		let expected_path = &[
+			// 0, // root node
+			1, // root child 2
+			2, // c1 3
+			3, // c2 4
+		];
+
+		assert_eq!(path.as_slice(), expected_path);
+
+		let got_idx = component.path_to_nodeidx(&path).unwrap();
+
+		assert_eq!(*component.get_node(&got_idx).unwrap().data(), "c2 4");
+		assert_eq!(got_idx, idx);
 	}
 }

@@ -101,7 +101,7 @@ where
 
 		if let Some(root) = self.tree.get_root() {
 			let rootidx = root.idx();
-			self.state.open(rootidx.clone());
+			self.state.open(rootidx);
 			self.state.select(Some(rootidx));
 		}
 
@@ -361,13 +361,13 @@ where
 				match direction {
 					Direction::Down => self.state.select_next_down(&self.tree),
 					Direction::Left => {
-						if let Some(nodeidx) = self.state.selected() {
-							self.state.close(&nodeidx.clone());
+						if let Some(nodeidx) = self.state.selected().copied() {
+							self.state.close(&nodeidx);
 						}
 					},
 					Direction::Right => {
 						if let Some(nodeidx) = self.state.selected() {
-							self.state.open(nodeidx.clone());
+							self.state.open(*nodeidx);
 						}
 					},
 					Direction::Up => self.state.select_next_up(&self.tree),
@@ -402,7 +402,7 @@ where
 				return CmdResult::Changed(self.state());
 			},
 			Cmd::Toggle => {
-				if let Some(nodeidx) = self.state.selected().cloned() {
+				if let Some(nodeidx) = self.state.selected().copied() {
 					if self.state.is_opened(&nodeidx) {
 						self.state.close(&nodeidx);
 					} else {

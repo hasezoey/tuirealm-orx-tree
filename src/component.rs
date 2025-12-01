@@ -33,6 +33,7 @@ use crate::{
 	props_ext::PropsExt,
 	types::{
 		CallbackOpenClose,
+		MotionDirection,
 		Node,
 		NodeIdx,
 		NodeMut,
@@ -388,6 +389,27 @@ where
 	pub fn clear_tree(&mut self) {
 		self.tree.clear();
 		self.state.clear();
+	}
+
+	/// Select a specific node with a given motion direction.
+	///
+	/// A [`MotionDirection`] is necessary to figure out in which way to check for scrolling behavior.
+	///
+	/// Note that using [`MotionDirection::NoMotion`] does not change the display offset.
+	// TODO: is motion direction really necessary, cant it be de-duplicated?
+	pub fn select(&mut self, motion: MotionDirection, node: NodeIdx<V>) {
+		match motion {
+			MotionDirection::Upwards => self.state.select_upwards(&self.tree, node),
+			MotionDirection::Downwards => self.state.select_downwards(&self.tree, node),
+			MotionDirection::NoMotion => self.state.select(Some(node)),
+		}
+	}
+
+	/// Reset selection.
+	///
+	/// On next non-specific node movement, it will start from the root again.
+	pub fn unselect(&mut self) {
+		self.state.select(None);
 	}
 }
 

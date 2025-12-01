@@ -279,14 +279,24 @@ where
 	pub fn select_next_down(&mut self, tree: &Tree<V>) {
 		let next = self.get_next_node_down(tree);
 
-		match next.as_ref().and_then(|v| return self.get_offset_of_node(tree, v)) {
+		if let Some(node) = next {
+			self.select_downwards(tree, node);
+		} else {
+			self.display_offset.reset();
+			self.select(None);
+		}
+	}
+
+	/// Select the given node in a downwards motion.
+	pub fn select_downwards(&mut self, tree: &Tree<V>, node: NodeIdx<V>) {
+		match self.get_offset_of_node(tree, &node) {
 			Some(offset) => {
 				self.set_vert_offset_down(offset);
 			},
 			None => self.display_offset.reset(),
 		}
 
-		self.select(next);
+		self.select(Some(node));
 	}
 
 	/// Select the next node upwards.
@@ -295,14 +305,24 @@ where
 	pub fn select_next_up(&mut self, tree: &Tree<V>) {
 		let next = self.get_next_node_up(tree);
 
-		match next.as_ref().and_then(|v| return self.get_offset_of_node(tree, v)) {
+		if let Some(node) = next {
+			self.select_upwards(tree, node);
+		} else {
+			self.display_offset.reset();
+			self.select(None);
+		}
+	}
+
+	/// Select the given node in a upwards motion.
+	pub fn select_upwards(&mut self, tree: &Tree<V>, node: NodeIdx<V>) {
+		match self.get_offset_of_node(tree, &node) {
 			Some(offset) => {
 				self.set_vert_offset_up(offset);
 			},
 			None => self.display_offset.reset(),
 		}
 
-		self.select(next);
+		self.select(Some(node));
 	}
 
 	/// Select the first node.

@@ -128,24 +128,3 @@ const fn is_utf8_char_boundary(val: u8) -> bool {
 	// This is bit magic equivalent to: b < 128 || b >= 192
 	return (val as i8) >= -0x40;
 }
-
-/// The type of event the callback has been called for
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
-pub enum OpenCloseType {
-	Open,
-	Close,
-}
-
-/// Custom trait to alias the [`Fn`] and extra arguments.
-/// Automatically implemented on any [`Fn`] that takes those parameters
-pub(crate) trait CallbackOpenClose<V: NodeValue>:
-	Fn(OpenCloseType, NodeIdx<V>, &'_ mut Tree<V>) + 'static
-{
-}
-
-impl<T, V> CallbackOpenClose<V> for T
-where
-	T: Fn(OpenCloseType, NodeIdx<V>, &'_ mut Tree<V>) + 'static,
-	V: NodeValue,
-{
-}

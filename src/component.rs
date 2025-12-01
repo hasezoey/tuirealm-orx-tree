@@ -32,7 +32,6 @@ pub use crate::state::{
 use crate::{
 	props_ext::PropsExt,
 	types::{
-		CallbackOpenClose,
 		MotionDirection,
 		Node,
 		NodeIdx,
@@ -107,7 +106,7 @@ where
 
 		if let Some(root) = self.tree.get_root() {
 			let rootidx = root.idx();
-			self.state.open(rootidx, &mut self.tree);
+			self.state.open(rootidx);
 			self.state.select(Some(rootidx));
 		}
 
@@ -373,16 +372,6 @@ where
 		self.tree = actual_tree.into_lazy_reclaim();
 	}
 
-	/// Add a callback to the `open`- & `close`ing of a node.
-	///
-	/// This can be useful for start prefetching for nodes (ex. filesystem).
-	#[expect(private_bounds)]
-	pub fn on_open(mut self, func: impl CallbackOpenClose<V>) -> Self {
-		self.state.on_open(func);
-
-		return self;
-	}
-
 	/// Clear the current tree of any nodes (including root).
 	///
 	/// Also clears the state of any tree related node data.
@@ -554,12 +543,12 @@ where
 					Direction::Down => self.state.select_next_down(&self.tree),
 					Direction::Left => {
 						if let Some(nodeidx) = self.state.selected().copied() {
-							self.state.close(&nodeidx, &mut self.tree);
+							self.state.close(&nodeidx);
 						}
 					},
 					Direction::Right => {
 						if let Some(nodeidx) = self.state.selected() {
-							self.state.open(*nodeidx, &mut self.tree);
+							self.state.open(*nodeidx);
 						}
 					},
 					Direction::Up => self.state.select_next_up(&self.tree),
@@ -600,9 +589,9 @@ where
 			Cmd::Toggle => {
 				if let Some(nodeidx) = self.state.selected().copied() {
 					if self.state.is_opened(&nodeidx) {
-						self.state.close(&nodeidx, &mut self.tree);
+						self.state.close(&nodeidx);
 					} else {
-						self.state.open(nodeidx, &mut self.tree);
+						self.state.open(nodeidx);
 					}
 
 					return CmdResult::Changed(self.state());

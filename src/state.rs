@@ -1,7 +1,4 @@
-use std::{
-	num::NonZeroUsize,
-	sync::Arc,
-};
+use std::num::NonZeroUsize;
 
 use orx_tree::{
 	Dfs,
@@ -16,11 +13,9 @@ use tuirealm::ratatui::layout::{
 
 use crate::{
 	types::{
-		CallbackOpenClose,
 		Node,
 		NodeIdx,
 		NodeValue,
-		OpenCloseType,
 		Tree,
 	},
 	widget::is_parent_open,
@@ -82,7 +77,7 @@ impl Offset {
 const ONE_NONEZERO: NonZeroUsize = NonZeroUsize::new(1).unwrap();
 
 /// The main state-keeper
-#[derive(Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct TreeViewState<V: NodeValue> {
 	selected: Option<NodeIdx<V>>,
 	open:     Vec<NodeIdx<V>>,
@@ -100,26 +95,6 @@ pub struct TreeViewState<V: NodeValue> {
 	/// Determines the vertical amount of elements to display before/after the selection
 	/// (depending on motion direction).
 	preview_distance_vertical: usize,
-
-	// Callbacks
-	on_open: Option<Arc<dyn CallbackOpenClose<V>>>,
-}
-
-// Manual Debug impl due to "dyn Fn" not implementing Debug
-impl<V: NodeValue + std::fmt::Debug> std::fmt::Debug for TreeViewState<V> {
-	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-		return f
-			.debug_struct("TreeViewState")
-			.field("selected", &self.selected)
-			.field("open", &self.open)
-			.field("last_tree_size", &self.last_tree_size)
-			.field("display_offset", &self.display_offset)
-			.field("scroll_step_horiz", &self.scroll_step_horiz)
-			.field("scroll_step_verti", &self.scroll_step_verti)
-			.field("preview_distance_vertical", &self.preview_distance_vertical)
-			.field("on_open", if self.on_open.is_some() { &"Some<fn>" } else { &"None" })
-			.finish();
-	}
 }
 
 impl<V> Default for TreeViewState<V>
@@ -135,7 +110,6 @@ where
 			scroll_step_horiz: ONE_NONEZERO,
 			scroll_step_verti: ONE_NONEZERO,
 			preview_distance_vertical: usize::from(PREVIEW_DISTANCE_DEFAULT),
-			on_open: None,
 		};
 	}
 }
@@ -192,21 +166,13 @@ where
 	}
 
 	/// Open a specific Node.
-	pub fn open(&mut self, node: NodeIdx<V>, tree: &mut Tree<V>) {
+	pub fn open(&mut self, node: NodeIdx<V>) {
 		self.open.push(node);
-
-		if let Some(cb) = self.on_open.as_deref() {
-			(*cb)(OpenCloseType::Open, node, tree);
-		}
 	}
 
 	/// Open a specific Node.
-	pub fn close(&mut self, node: &NodeIdx<V>, tree: &mut Tree<V>) {
+	pub fn close(&mut self, node: &NodeIdx<V>) {
 		self.open.retain(|v| return v != node);
-
-		if let Some(cb) = self.on_open.as_deref() {
-			(*cb)(OpenCloseType::Close, *node, tree);
-		}
 	}
 
 	/// Get all open nodes.
@@ -220,11 +186,6 @@ where
 	/// and have to be re-generated.
 	pub(crate) fn overwrite_open(&mut self, open: Vec<NodeIdx<V>>) {
 		self.open = open;
-	}
-
-	#[expect(private_bounds)]
-	pub fn on_open(&mut self, func: impl CallbackOpenClose<V>) {
-		self.on_open = Some(Arc::new(func));
 	}
 
 	/// Select a specific node or unselect the current node by setting it to `None`.
@@ -746,25 +707,4 @@ where
 #[inline]
 fn size_height_gt(left: Size, right: Size) -> bool {
 	return left.height > right.height;
-}
-
-#[cfg(test)]
-mod tests {
-	use crate::component::TreeView;
-
-	#[test]
-	fn open_close_callbacks() {
-		let (tx, _rx) = std::sync::mpsc::channel();
-
-		// for some reason, if the closure is not directly in the "on_open" call, the magic ": &_" is required to get lifetimes to work.
-		let c = move |_ev, _idx, _state: &mut _| {
-			let _ = tx.send("things");
-		};
-		let _ = TreeView::<String>::default().on_open(c);
-
-		let (tx, _rx) = std::sync::mpsc::channel();
-		let _ = TreeView::<String>::default().on_open(move |_ev, _idx, _state| {
-			let _ = tx.send("things");
-		});
-	}
 }

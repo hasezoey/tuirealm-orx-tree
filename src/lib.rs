@@ -75,6 +75,7 @@ pub mod widget;
 pub use orx_tree::{
 	NodeMut,
 	NodeRef,
+	Side,
 	traversal,
 };
 

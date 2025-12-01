@@ -63,6 +63,8 @@ pub mod cmd {
 	pub const PG_UP: &str = "pg-down";
 	/// Command to run a "Page Up" selection
 	pub const PG_DOWN: &str = "pg-up";
+	/// Command to select the parent of the currently selected node
+	pub const SELECT_PARENT: &str = "select-parent";
 }
 
 /// The TUIRealm TreeView component
@@ -546,6 +548,10 @@ where
 			},
 			Cmd::Custom(cmd::PG_UP) => {
 				self.state.select_pg_up(&self.tree);
+				return CmdResult::Changed(self.state());
+			},
+			Cmd::Custom(cmd::SELECT_PARENT) => {
+				self.state.select_parent(&self.tree);
 				return CmdResult::Changed(self.state());
 			},
 			Cmd::Scroll(direction) => {

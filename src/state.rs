@@ -263,7 +263,7 @@ where
 
 	/// Calculate & set the display offset for upwards motion.
 	///
-	/// This does not change display offset if the new `node_offset` still fits within the curren display offset.
+	/// This does not change display offset if the new `node_offset` still fits within the current display offset.
 	fn set_vert_offset_up(&mut self, node_offset: usize) {
 		let old_offset = self.display_offset.get_vertical();
 
@@ -431,6 +431,32 @@ where
 
 		// normal set scroll and offset
 		let next = next.idx();
+
+		match self.get_offset_of_node(tree, &next) {
+			Some(offset) => {
+				self.set_vert_offset_up(offset);
+			},
+			None => self.display_offset.reset(),
+		}
+
+		self.select(Some(next));
+	}
+
+	/// Select the parent node of the currently selected node, if there is one.
+	///
+	/// Fetches the next node, calculates the offset and applies it.
+	pub fn select_parent(&mut self, tree: &Tree<V>) {
+		let Some(current) = self.selected() else {
+			return;
+		};
+
+		let Some(next) = tree
+			.get_node(current)
+			.and_then(|v| return v.parent())
+			.map(|v| return v.idx())
+		else {
+			return;
+		};
 
 		match self.get_offset_of_node(tree, &next) {
 			Some(offset) => {

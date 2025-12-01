@@ -170,6 +170,21 @@ where
 		self.open.push(node);
 	}
 
+	/// Open all parents of the given node.
+	///
+	/// Does not open the node itself.
+	pub fn open_all_parents(&mut self, tree: &Tree<V>, node: &NodeIdx<V>) {
+		let Some(mut node) = tree.get_node(node) else {
+			return;
+		};
+
+		while let Some(parent) = node.parent() {
+			self.open(parent.idx());
+
+			node = parent;
+		}
+	}
+
 	/// Open a specific Node.
 	pub fn close(&mut self, node: &NodeIdx<V>) {
 		self.open.retain(|v| return v != node);

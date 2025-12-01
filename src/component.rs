@@ -385,6 +385,8 @@ where
 	/// A [`MotionDirection`] is necessary to figure out in which way to check for scrolling behavior.
 	///
 	/// Note that using [`MotionDirection::NoMotion`] does not change the display offset.
+	///
+	/// May need to call [`open_all_parents`](Self::open_all_parents) to actually make it visible.
 	// TODO: is motion direction really necessary, cant it be de-duplicated?
 	pub fn select(&mut self, motion: MotionDirection, node: NodeIdx<V>) {
 		match motion {
@@ -399,6 +401,20 @@ where
 	/// On next non-specific node movement, it will start from the root again.
 	pub fn unselect(&mut self) {
 		self.state.select(None);
+	}
+
+	/// Open a specific Node.
+	///
+	/// Alternative to `.perform(Cmd::Move(Direction::Right))`.
+	pub fn open(&mut self, node: NodeIdx<V>) {
+		self.state.open(node);
+	}
+
+	/// Open all parents of the given node.
+	///
+	/// Does not open the node itself.
+	pub fn open_all_parents(&mut self, node: &NodeIdx<V>) {
+		self.state.open_all_parents(&self.tree, node);
 	}
 }
 

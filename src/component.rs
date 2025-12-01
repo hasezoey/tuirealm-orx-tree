@@ -264,6 +264,11 @@ where
 		return self.tree.get_node_mut(idx);
 	}
 
+	/// Get the current state of the component.
+	pub fn get_state(&self) -> &TreeViewState<V> {
+		return &self.state;
+	}
+
 	/// Try reclaiming memory.
 	///
 	/// This will only reclaim memory if utilization is below ~93.75% (see [`AutoWithThreshold`](orx_tree::AutoWithThreshold)).

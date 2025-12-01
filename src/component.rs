@@ -367,6 +367,14 @@ where
 
 		return self;
 	}
+
+	/// Clear the current tree of any nodes (including root).
+	///
+	/// Also clears the state of any tree related node data.
+	pub fn clear_tree(&mut self) {
+		self.tree.clear();
+		self.state.clear();
+	}
 }
 
 impl<V> MockComponent for TreeView<V>

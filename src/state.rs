@@ -682,6 +682,16 @@ where
 
 		self.display_offset.set_vertical(new_offset);
 	}
+
+	/// Clear all state related to the tree.
+	///
+	/// Clears `open` list and `selected` node.
+	///
+	/// Does **not** reset `offset` (in case new tree needs it).
+	pub fn clear(&mut self) {
+		self.open.clear();
+		let _ = self.selected.take();
+	}
 }
 
 /// Manually implemented because [`Size`] does not currently implement [`PartialOrd`].

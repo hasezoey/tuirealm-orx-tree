@@ -15,7 +15,6 @@ tuirealm = { version = "3.2.0", default-features = false, features = [
 ] }
 tui-realm-stdlib = "~3.0"
 orx-tree = { version = "2.1", default-features = false, features = [] }
-log = "0.4"
 
 [dev-dependencies]
 pretty_assertions = "1.4"

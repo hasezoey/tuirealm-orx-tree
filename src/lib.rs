@@ -62,9 +62,6 @@
 //! }
 //! ```
 
-#[macro_use]
-extern crate log;
-
 pub mod component;
 mod props_ext;
 mod state;

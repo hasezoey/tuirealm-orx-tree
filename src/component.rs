@@ -260,7 +260,7 @@ where
 	/// - no memory changes have happened and the node is still valid.
 	///
 	/// See [`NodeIdx`] documentation.
-	pub fn get_node(&self, idx: &NodeIdx<V>) -> Option<Node<'_, V>> {
+	pub fn get_node(&self, idx: NodeIdx<V>) -> Option<Node<'_, V>> {
 		return self.tree.get_node(idx);
 	}
 
@@ -274,7 +274,7 @@ where
 	/// See [`NodeIdx`] documentation.
 	///
 	///
-	pub fn get_node_mut(&mut self, idx: &NodeIdx<V>) -> Option<NodeMut<'_, V>> {
+	pub fn get_node_mut(&mut self, idx: NodeIdx<V>) -> Option<NodeMut<'_, V>> {
 		return self.tree.get_node_mut(idx);
 	}
 
@@ -297,7 +297,7 @@ where
 			.state
 			.get_all_open()
 			.iter()
-			.filter_map(|v| return self.nodeidx_to_path(v))
+			.filter_map(|v| return self.nodeidx_to_path(*v))
 			.collect::<Vec<_>>();
 
 		// run the reclaim that potentially invalidates all the indicies
@@ -323,7 +323,7 @@ where
 	///
 	/// This path is stable across node invalidation through memory reclamation.
 	/// It is **not** stable across node movement or deletion.
-	fn nodeidx_to_path(&self, nodeidx: &NodeIdx<V>) -> Option<Vec<usize>> {
+	fn nodeidx_to_path(&self, nodeidx: NodeIdx<V>) -> Option<Vec<usize>> {
 		let mut path = Vec::new();
 
 		let mut next_node = self.tree.get_node(nodeidx)?;
@@ -413,7 +413,7 @@ where
 	/// Open all parents of the given node.
 	///
 	/// Does not open the node itself.
-	pub fn open_all_parents(&mut self, node: &NodeIdx<V>) {
+	pub fn open_all_parents(&mut self, node: NodeIdx<V>) {
 		self.state.open_all_parents(&self.tree, node);
 	}
 }
@@ -558,13 +558,13 @@ where
 				match direction {
 					Direction::Down => self.state.select_next_down(&self.tree),
 					Direction::Left => {
-						if let Some(nodeidx) = self.state.selected().copied() {
-							self.state.close(&nodeidx);
+						if let Some(nodeidx) = self.state.selected() {
+							self.state.close(nodeidx);
 						}
 					},
 					Direction::Right => {
 						if let Some(nodeidx) = self.state.selected() {
-							self.state.open(*nodeidx);
+							self.state.open(nodeidx);
 						}
 					},
 					Direction::Up => self.state.select_next_up(&self.tree),
@@ -603,9 +603,9 @@ where
 				return CmdResult::Changed(self.state());
 			},
 			Cmd::Toggle => {
-				if let Some(nodeidx) = self.state.selected().copied() {
-					if self.state.is_opened(&nodeidx) {
-						self.state.close(&nodeidx);
+				if let Some(nodeidx) = self.state.selected() {
+					if self.state.is_opened(nodeidx) {
+						self.state.close(nodeidx);
 					} else {
 						self.state.open(nodeidx);
 					}
@@ -659,7 +659,7 @@ mod tests {
 
 		let component = TreeView::new_tree(tree);
 
-		let path = component.nodeidx_to_path(&idx).unwrap();
+		let path = component.nodeidx_to_path(idx).unwrap();
 
 		let expected_path = &[
 			// 0, // root node
@@ -672,7 +672,7 @@ mod tests {
 
 		let got_idx = component.path_to_nodeidx(&path).unwrap();
 
-		assert_eq!(*component.get_node(&got_idx).unwrap().data(), "c2 4");
+		assert_eq!(*component.get_node(got_idx).unwrap().data(), "c2 4");
 		assert_eq!(got_idx, idx);
 	}
 }

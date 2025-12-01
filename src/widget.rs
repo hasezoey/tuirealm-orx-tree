@@ -210,7 +210,7 @@ where
 			// render the main data
 			node.data()
 				.render_with_indicators(buf, line_area, display_offset_horiz, use_style, node.is_leaf(), || {
-					return state.is_opened(&node.idx());
+					return state.is_opened(node.idx());
 				});
 
 			remaining_area.height = remaining_area.height.saturating_sub(1);
@@ -232,7 +232,7 @@ where
 	// if the input node already does not have a parent (`to_check = None`), use base case "true"
 	// because that is the root node, which we always want to display
 	while let Some(node) = to_check {
-		if state.is_opened(&node.idx()) {
+		if state.is_opened(node.idx()) {
 			to_check = node.parent();
 		} else {
 			return false;

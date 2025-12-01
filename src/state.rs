@@ -161,8 +161,8 @@ where
 	}
 
 	/// Is the given node opened?
-	pub fn is_opened(&self, node: &NodeIdx<V>) -> bool {
-		return self.open.contains(node);
+	pub fn is_opened(&self, node: NodeIdx<V>) -> bool {
+		return self.open.contains(&node);
 	}
 
 	/// Open a specific Node.
@@ -173,7 +173,7 @@ where
 	/// Open all parents of the given node.
 	///
 	/// Does not open the node itself.
-	pub fn open_all_parents(&mut self, tree: &Tree<V>, node: &NodeIdx<V>) {
+	pub fn open_all_parents(&mut self, tree: &Tree<V>, node: NodeIdx<V>) {
 		let Some(mut node) = tree.get_node(node) else {
 			return;
 		};
@@ -186,8 +186,8 @@ where
 	}
 
 	/// Open a specific Node.
-	pub fn close(&mut self, node: &NodeIdx<V>) {
-		self.open.retain(|v| return v != node);
+	pub fn close(&mut self, node: NodeIdx<V>) {
+		self.open.retain(|v| return *v != node);
 	}
 
 	/// Get all open nodes.
@@ -465,8 +465,8 @@ where
 	}
 
 	/// Get the current select value.
-	pub fn selected(&self) -> Option<&NodeIdx<V>> {
-		return self.selected.as_ref();
+	pub fn selected(&self) -> Option<NodeIdx<V>> {
+		return self.selected;
 	}
 
 	/// Change the display offset so that the currently selected node is always visible.
@@ -518,7 +518,7 @@ where
 	/// Get the next node downwards, otherwise returning itself, for order see [`get_next_node_down`].
 	fn get_next_node_down_checked<'a>(&self, selected: Node<'a, V>) -> Node<'a, V> {
 		// if the current node is open and has children, get the first child
-		if self.is_opened(&selected.idx())
+		if self.is_opened(selected.idx())
 			&& let Some(child) = selected.get_child(0)
 		{
 			return child;
@@ -587,7 +587,7 @@ where
 
 	/// Get the last open node in `selected`, recursively.
 	fn get_last_open_node_of<'a>(&self, selected: Node<'a, V>) -> Node<'a, V> {
-		if self.is_opened(&selected.idx())
+		if self.is_opened(selected.idx())
 			&& let Some(child) = selected.get_child(selected.num_children().saturating_sub(1))
 		{
 			return self.get_last_open_node_of(child);
@@ -600,7 +600,7 @@ where
 	pub fn get_last_open_node(&self, tree: &Tree<V>) -> Option<NodeIdx<V>> {
 		let mut node = tree.get_root()?;
 
-		while self.is_opened(&node.idx()) && node.num_children() > 0 {
+		while self.is_opened(node.idx()) && node.num_children() > 0 {
 			node = self.get_last_open_node_of(node);
 		}
 

@@ -240,6 +240,18 @@ where
 		return &mut self.tree;
 	}
 
+	/// Pushes the root to the empty tree.
+	///
+	/// Unlike [`Tree::push_root`], this function does not panic and will just return `Some(root_value)` if it could not be applied.
+	pub fn push_root(&mut self, root_value: V) -> Option<V> {
+		if self.tree.get_root().is_some() {
+			return Some(root_value);
+		} else {
+			self.tree.push_root(root_value);
+			return None;
+		}
+	}
+
 	/// Get the node for the given index.
 	///
 	/// A node is only returned if:

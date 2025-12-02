@@ -521,9 +521,9 @@ where
 		return Some(tree.get_root()?.idx());
 	}
 
-	/// Dont use this function directly, use [`get_next_node_down`].
+	/// Dont use this function directly, use [`get_next_node_down`](Self::get_next_node_down).
 	///
-	/// Get the next node downwards, otherwise returning itself, for order see [`get_next_node_down`].
+	/// Get the next node downwards, otherwise returning itself, for order see [`get_next_node_down`](Self::get_next_node_down).
 	fn get_next_node_down_checked<'a>(&self, selected: Node<'a, V>) -> Node<'a, V> {
 		// if the current node is open and has children, get the first child
 		if self.is_opened(selected.idx())
@@ -536,7 +536,7 @@ where
 		return Self::get_next_sibling_down(&selected).unwrap_or_else(|| return selected);
 	}
 
-	/// Dont use this function directly, use [`get_next_node_down`].
+	/// Dont use this function directly, use [`get_next_node_down`](Self::get_next_node_down).
 	///
 	/// Get the next node downwards where:
 	/// - If current node is open, select first child
@@ -568,7 +568,7 @@ where
 		return Some(tree.get_root()?.idx());
 	}
 
-	/// Dont use this function directly, use [`get_next_node_up`].
+	/// Dont use this function directly, use [`get_next_node_up`](Self::get_next_node_up).
 	///
 	/// Get the next node upwards where:
 	/// - Base-case: return itself

@@ -434,7 +434,7 @@ impl FileSystemTree {
 		self.component.select(MotionDirection::Upwards, idx);
 		self.component.open_all_parents(idx);
 		// always open the selected node
-		self.component.perform(Cmd::Move(Direction::Right));
+		self.handle_right_key();
 	}
 
 	/// Apply the given data as the root of the tree, resetting the state of the tree.

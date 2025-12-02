@@ -91,7 +91,6 @@ pub mod widget;
 
 // re-exports
 pub use orx_tree::{
-	NodeMut,
 	NodeRef,
 	Side,
 	traversal,

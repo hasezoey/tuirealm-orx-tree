@@ -76,10 +76,7 @@ use tuirealm::{
 	command::CmdResult,
 };
 use tuirealm_orx_tree::component::cmd;
-use tuirealm_orx_tree::types::{
-	MotionDirection,
-	NodeIdx,
-};
+use tuirealm_orx_tree::types::NodeIdx;
 use tuirealm_orx_tree::widget::{
 	CHILD_INDICATOR_LENGTH,
 	RenderIndicator,
@@ -431,7 +428,7 @@ impl FileSystemTree {
 
 	/// Select, open all parents and open the given node.
 	fn select_and_open_node(&mut self, idx: NodeIdx<FSTreeData>) {
-		self.component.select(MotionDirection::Upwards, idx);
+		self.component.select(idx);
 		self.component.open_all_parents(idx);
 		// always open the selected node
 		self.handle_right_key();
@@ -555,7 +552,7 @@ impl FileSystemTree {
 					}
 				}
 			} else if is_node_selected {
-				self.component.select(MotionDirection::NoMotion, new_idx);
+				self.component.select_no_offset(new_idx);
 			}
 
 			// TODO: call tree changed?

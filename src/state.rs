@@ -211,7 +211,7 @@ where
 
 	/// Select a specific node or unselect the current node by setting it to `None`.
 	///
-	/// NOTE: this does *not* change the offset.
+	/// NOTE: this does *not* change the offset, use [`select_set_offset`](Self::select_set_offset) instead.
 	pub fn select(&mut self, node: Option<NodeIdx<V>>) {
 		self.selected = node;
 	}

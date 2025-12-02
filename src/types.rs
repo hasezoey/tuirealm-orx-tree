@@ -34,16 +34,6 @@ pub type Node<'a, V: NodeValue> = orx_tree::Node<'a, Dyn<V>, Lazy>;
 #[expect(type_alias_bounds)]
 pub type NodeMut<'a, V: NodeValue> = orx_tree::NodeMut<'a, Dyn<V>, Lazy>;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum MotionDirection {
-	/// Motion in the upwards direction (moving upwards)
-	Upwards,
-	/// Motion in the downwards direction (moving downwards)
-	Downwards,
-	/// No motion happens.
-	NoMotion,
-}
-
 /// Controls how to render the given value in the tree.
 pub trait NodeValue {
 	/// Render the current value.

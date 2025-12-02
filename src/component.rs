@@ -32,7 +32,6 @@ pub use crate::state::{
 use crate::{
 	props_ext::PropsExt,
 	types::{
-		MotionDirection,
 		Node,
 		NodeIdx,
 		NodeMut,
@@ -380,20 +379,22 @@ where
 		self.state.clear();
 	}
 
-	/// Select a specific node with a given motion direction.
-	///
-	/// A [`MotionDirection`] is necessary to figure out in which way to check for scrolling behavior.
-	///
-	/// Note that using [`MotionDirection::NoMotion`] does not change the display offset.
+	/// Select a specific node and change offset to be within view.
 	///
 	/// May need to call [`open_all_parents`](Self::open_all_parents) to actually make it visible.
-	// TODO: is motion direction really necessary, cant it be de-duplicated?
-	pub fn select(&mut self, motion: MotionDirection, node: NodeIdx<V>) {
-		match motion {
-			MotionDirection::Upwards => self.state.select_set_offset(&self.tree, node),
-			MotionDirection::Downwards => self.state.select_set_offset(&self.tree, node),
-			MotionDirection::NoMotion => self.state.select(Some(node)),
-		}
+	#[inline]
+	pub fn select(&mut self, node: NodeIdx<V>) {
+		self.state.select_set_offset(&self.tree, node);
+	}
+
+	/// Select a specific node **without** changing offset to be within view.
+	///
+	/// Most likely [`select`](Self::select) is meant instead!
+	///
+	/// May need to call [`open_all_parents`](Self::open_all_parents) to actually make it visible.
+	#[inline]
+	pub fn select_no_offset(&mut self, node: NodeIdx<V>) {
+		self.state.select(Some(node));
 	}
 
 	/// Reset selection.

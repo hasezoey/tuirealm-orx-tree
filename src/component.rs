@@ -390,8 +390,8 @@ where
 	// TODO: is motion direction really necessary, cant it be de-duplicated?
 	pub fn select(&mut self, motion: MotionDirection, node: NodeIdx<V>) {
 		match motion {
-			MotionDirection::Upwards => self.state.select_upwards(&self.tree, node),
-			MotionDirection::Downwards => self.state.select_downwards(&self.tree, node),
+			MotionDirection::Upwards => self.state.select_set_offset(&self.tree, node),
+			MotionDirection::Downwards => self.state.select_set_offset(&self.tree, node),
 			MotionDirection::NoMotion => self.state.select(Some(node)),
 		}
 	}

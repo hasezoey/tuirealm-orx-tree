@@ -595,13 +595,15 @@ where
 
 	/// Get the last open node in `selected`, recursively.
 	fn get_last_open_node_of<'a>(&self, selected: Node<'a, V>) -> Node<'a, V> {
-		if self.is_opened(selected.idx())
-			&& let Some(child) = selected.get_child(selected.num_children().saturating_sub(1))
+		let mut node = selected;
+
+		while self.is_opened(node.idx())
+			&& let Some(child) = node.get_child(node.num_children().saturating_sub(1))
 		{
-			return self.get_last_open_node_of(child);
+			node = child;
 		}
 
-		return selected;
+		return node;
 	}
 
 	/// Get the very last (bottom) node of the tree.

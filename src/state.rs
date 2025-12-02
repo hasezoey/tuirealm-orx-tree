@@ -35,6 +35,12 @@ pub(crate) struct Offset {
 }
 
 impl Offset {
+	/// Create a new offset with specific values
+	#[allow(unused)]
+	pub fn new(x: usize, y: usize) -> Self {
+		return Self { x, y };
+	}
+
 	/// Reset the offset to `0`.
 	pub fn reset(&mut self) {
 		self.x = 0;
@@ -722,4 +728,233 @@ where
 #[inline]
 fn size_height_gt(left: Size, right: Size) -> bool {
 	return left.height > right.height;
+}
+
+#[cfg(test)]
+mod tests {
+	use pretty_assertions::assert_eq;
+	use tuirealm::ratatui::layout::Rect;
+
+	use crate::{
+		state::{
+			Offset,
+			TreeViewState,
+		},
+		types::{
+			NodeIdx,
+			Tree,
+		},
+	};
+
+	/// Create a mock tree which contains 124 String node data children plus the root.
+	fn create_tree() -> (Tree<String>, NodeIdx<String>, Vec<NodeIdx<String>>) {
+		let mut tree = Tree::default();
+		let idx = tree.push_root("0".to_string());
+		let mut root_mut = tree.node_mut(idx);
+
+		let mut child_idx = Vec::with_capacity(125);
+		for value in (0..124).map(|v| return v.to_string()) {
+			child_idx.push(root_mut.push_child(value));
+		}
+
+		return (tree, idx, child_idx);
+	}
+
+	/// Set the root node to be selected and open.
+	///
+	/// Also verifies some common state before / after.
+	fn set_start_assumptions(state: &mut TreeViewState<String>, tree: &Tree<String>, root_idx: NodeIdx<String>) {
+		assert_eq!(state.display_offset, Offset::default());
+
+		state.select_next_down(tree);
+		assert_eq!(state.display_offset, Offset::default());
+		assert_eq!(state.selected, Some(root_idx));
+
+		// by default the root node is NOT open
+		assert!(!state.is_opened(root_idx));
+		state.open(root_idx);
+	}
+
+	#[test]
+	fn should_not_scroll_unnecessarily() {
+		let (tree, root_idx, child_idx) = create_tree();
+
+		let mut state = TreeViewState::default();
+		let view_area = Rect::new(0, 0, 10, 10);
+		state.set_last_size(view_area, &tree);
+
+		set_start_assumptions(&mut state, &tree, root_idx);
+
+		// On default settings, it shouldnt move until area.height(10)-preview_distance(2)-root_node(1) = 7 elements in
+		for idx in 0..=6 {
+			state.select_next_down(&tree);
+			assert_eq!(state.display_offset, Offset::default());
+			assert_eq!(
+				state.selected,
+				Some(*child_idx.get(idx).unwrap()),
+				"child_idx down {idx}"
+			);
+		}
+
+		state.select_next_down(&tree);
+		assert_eq!(state.display_offset, Offset::new(0, 1));
+		assert_eq!(state.selected, Some(*child_idx.get(7).unwrap()), "child_idx down 7");
+
+		state.select_next_down(&tree);
+		assert_eq!(state.display_offset, Offset::new(0, 2));
+		assert_eq!(state.selected, Some(*child_idx.get(8).unwrap()), "child_idx down 8");
+
+		// next up is still within view, so no need to scroll again
+		state.select_next_up(&tree);
+		assert_eq!(state.display_offset, Offset::new(0, 2));
+		assert_eq!(state.selected, Some(*child_idx.get(7).unwrap()), "child_idx up 7");
+
+		for idx in (3..=6).rev() {
+			eprintln!("{idx}");
+			state.select_next_up(&tree);
+			assert_eq!(state.display_offset, Offset::new(0, 2));
+			assert_eq!(state.selected, Some(*child_idx.get(idx).unwrap()), "child_idx up {idx}");
+		}
+
+		state.select_next_up(&tree);
+		assert_eq!(state.display_offset, Offset::new(0, 1));
+		assert_eq!(state.selected, Some(*child_idx.get(2).unwrap()), "child_idx up 2");
+
+		state.select_next_up(&tree);
+		assert_eq!(state.display_offset, Offset::default());
+		assert_eq!(state.selected, Some(*child_idx.get(1).unwrap()), "child_idx up 1");
+
+		state.select_next_up(&tree);
+		assert_eq!(state.display_offset, Offset::default());
+		assert_eq!(state.selected, Some(*child_idx.first().unwrap()), "child_idx up 0");
+
+		state.select_next_up(&tree);
+		assert_eq!(state.display_offset, Offset::default());
+		assert_eq!(state.selected, Some(root_idx));
+	}
+
+	#[test]
+	fn should_scroll_home_end() {
+		let (tree, root_idx, child_idx) = create_tree();
+
+		let mut state = TreeViewState::default();
+		let view_area = Rect::new(0, 0, 10, 10);
+		state.set_last_size(view_area, &tree);
+
+		set_start_assumptions(&mut state, &tree, root_idx);
+
+		// nothing should change as the root element is already selected
+		state.select_first(&tree);
+		assert_eq!(state.display_offset, Offset::default());
+		assert_eq!(state.selected, Some(root_idx));
+
+		state.select_last(&tree);
+		assert_eq!(
+			state.display_offset,
+			// plus the root element, plus preview distance
+			Offset::new(0, child_idx.len() + 1 + 2 - view_area.height as usize)
+		);
+		assert_eq!(state.selected, Some(*child_idx.last().unwrap()));
+	}
+
+	#[test]
+	fn should_scroll_page() {
+		let (tree, root_idx, child_idx) = create_tree();
+
+		let mut state = TreeViewState::default();
+		let view_area = Rect::new(0, 0, 10, 10);
+		state.set_last_size(view_area, &tree);
+
+		set_start_assumptions(&mut state, &tree, root_idx);
+
+		// nothing should change as the root element is already selected
+		state.select_pg_up(&tree);
+		assert_eq!(state.display_offset, Offset::default());
+		assert_eq!(state.selected, Some(root_idx));
+
+		// at first pg_down, while not being on the last element, it should select the last currently visible element (minus preview distance)
+		state.select_pg_down(&tree);
+		assert_eq!(state.display_offset, Offset::default());
+		assert_eq!(
+			state.selected,
+			// minus the root element, minus the preview distance minus 1 as index is 0 based
+			Some(*child_idx.get(view_area.height as usize - 1 - 2 - 1).unwrap())
+		);
+
+		// currently on page-up with a vertical offset of 0 and not having one of the preview distance nodes focused,
+		// it will select preview_distance+1 node
+		state.select_pg_up(&tree);
+		assert_eq!(state.display_offset, Offset::default());
+		assert_eq!(state.selected, Some(*child_idx.get(1).unwrap()));
+
+		// though another up should focus the root node
+		state.select_pg_up(&tree);
+		assert_eq!(state.display_offset, Offset::default());
+		assert_eq!(state.selected, Some(root_idx));
+
+		// get back in the down state
+		state.select_pg_down(&tree);
+
+		// another pg_down while already focused on the last visible node (minus preview distance) should scroll a page
+		state.select_pg_down(&tree);
+		let expected_offset = Offset::new(0, view_area.height as usize - 2 - 1);
+		assert_eq!(state.display_offset, expected_offset);
+		assert_eq!(
+			state.selected,
+			// minus the root element, minus the preview distance minus 1 as index is 0 based
+			Some(
+				*child_idx
+					.get(expected_offset.get_vertical() + view_area.height as usize - 1 - 2 - 1)
+					.unwrap()
+			)
+		);
+
+		for idx in 0..15 {
+			state.select_pg_down(&tree);
+			let expected_offset = Offset::new(0, (view_area.height as usize - 2 - 1) * (idx + 2));
+			assert_eq!(state.display_offset, expected_offset);
+			assert_eq!(
+				state.selected,
+				// minus the root element, minus the preview distance minus 1 as index is 0 based
+				Some(
+					*child_idx
+						.get(expected_offset.get_vertical() + view_area.height as usize - 1 - 2 - 1)
+						.unwrap()
+				),
+				"pg_down {idx}"
+			);
+		}
+
+		// we should be on the last page and last element
+		state.select_pg_down(&tree);
+		let expected_offset = Offset::new(0, child_idx.len() + 1 - view_area.height as usize + 2);
+		assert_eq!(state.display_offset, expected_offset);
+		assert_eq!(state.selected, Some(*child_idx.last().unwrap()), "pg_down last");
+
+		// another one shouldnt change anything
+		state.select_pg_down(&tree);
+		let expected_offset = Offset::new(0, child_idx.len() + 1 - view_area.height as usize + 2);
+		assert_eq!(state.display_offset, expected_offset);
+		assert_eq!(state.selected, Some(*child_idx.last().unwrap()), "pg_down last");
+
+		state.select_pg_up(&tree);
+		let expected_offset = Offset::new(0, child_idx.len() + 1 - view_area.height as usize + 2);
+		assert_eq!(state.display_offset, expected_offset);
+		assert_eq!(
+			state.selected,
+			// minus the root element, plus the preview distance
+			Some(*child_idx.get(expected_offset.get_vertical() - 1 + 2).unwrap()),
+			"pg_down last up 1"
+		);
+
+		state.select_pg_up(&tree);
+		let expected_offset = Offset::new(0, (view_area.height as usize - 2 - 1) * 16 - 2);
+		assert_eq!(state.display_offset, expected_offset);
+		assert_eq!(
+			state.selected,
+			// minus the root element, plus the preview distance
+			Some(*child_idx.get(expected_offset.get_vertical() - 1 + 2).unwrap()),
+			"pg_down last up 2"
+		);
+	}
 }

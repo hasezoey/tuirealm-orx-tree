@@ -271,7 +271,7 @@ where
 
 	/// Select the given node in a downwards motion.
 	pub fn select_downwards(&mut self, tree: &Tree<V>, node: NodeIdx<V>) {
-		match self.get_offset_of_node(tree, &node) {
+		match self.get_offset_of_node(tree, node) {
 			Some(offset) => {
 				self.set_vert_offset_down(offset);
 			},
@@ -297,7 +297,7 @@ where
 
 	/// Select the given node in a upwards motion.
 	pub fn select_upwards(&mut self, tree: &Tree<V>, node: NodeIdx<V>) {
-		match self.get_offset_of_node(tree, &node) {
+		match self.get_offset_of_node(tree, node) {
 			Some(offset) => {
 				self.set_vert_offset_up(offset);
 			},
@@ -321,7 +321,7 @@ where
 	pub fn select_last(&mut self, tree: &Tree<V>) {
 		let next = self.get_last_open_node(tree);
 
-		match next.as_ref().and_then(|v| return self.get_offset_of_node(tree, v)) {
+		match next.as_ref().and_then(|v| return self.get_offset_of_node(tree, *v)) {
 			Some(offset) => {
 				self.set_vert_offset_down(offset);
 			},
@@ -338,7 +338,7 @@ where
 		let offset_curr_sel = self
 			.selected()
 			.and_then(|v| return tree.get_node(v))
-			.and_then(|v| return self.get_offset_of_node(tree, &v.idx()))
+			.and_then(|v| return self.get_offset_of_node(tree, v.idx()))
 			.unwrap_or(0);
 		let old_offset = self.display_offset.get_vertical();
 		let area = self.last_tree_size.unwrap_or_default();
@@ -378,7 +378,7 @@ where
 		// normal set scroll and offset
 		let next = next.idx();
 
-		match self.get_offset_of_node(tree, &next) {
+		match self.get_offset_of_node(tree, next) {
 			Some(offset) => {
 				self.set_vert_offset_down(offset);
 			},
@@ -395,7 +395,7 @@ where
 		let offset_curr_sel = self
 			.selected()
 			.and_then(|v| return tree.get_node(v))
-			.and_then(|v| return self.get_offset_of_node(tree, &v.idx()))
+			.and_then(|v| return self.get_offset_of_node(tree, v.idx()))
 			.unwrap_or(0);
 		let old_offset = self.display_offset.get_vertical();
 		let area = self.last_tree_size.unwrap_or_default();
@@ -434,7 +434,7 @@ where
 		// normal set scroll and offset
 		let next = next.idx();
 
-		match self.get_offset_of_node(tree, &next) {
+		match self.get_offset_of_node(tree, next) {
 			Some(offset) => {
 				self.set_vert_offset_up(offset);
 			},
@@ -460,7 +460,7 @@ where
 			return;
 		};
 
-		match self.get_offset_of_node(tree, &next) {
+		match self.get_offset_of_node(tree, next) {
 			Some(offset) => {
 				self.set_vert_offset_up(offset);
 			},
@@ -482,7 +482,7 @@ where
 		let Some(current_pos) = self
 			.selected()
 			.and_then(|v| return tree.get_node(v))
-			.and_then(|v| return self.get_offset_of_node(tree, &v.idx()))
+			.and_then(|v| return self.get_offset_of_node(tree, v.idx()))
 		else {
 			// no node is selected, or it is not valid anymore
 			return;
@@ -614,7 +614,7 @@ where
 	}
 
 	/// Get the offset of a specific node as it would be in draw order.
-	fn get_offset_of_node(&self, tree: &Tree<V>, predicate: &NodeIdx<V>) -> Option<usize> {
+	fn get_offset_of_node(&self, tree: &Tree<V>, predicate: NodeIdx<V>) -> Option<usize> {
 		let root_node = tree.get_root()?;
 		// TODO: generic walker
 		let mut traverser = Dfs::<OverNode>::new();
@@ -629,7 +629,7 @@ where
 
 			position += 1;
 
-			if node.idx() == *predicate {
+			if node.idx() == predicate {
 				break;
 			}
 		}
@@ -661,7 +661,7 @@ where
 		let Some(current_pos) = self
 			.selected()
 			.and_then(|v| return tree.get_node(v))
-			.and_then(|v| return self.get_offset_of_node(tree, &v.idx()))
+			.and_then(|v| return self.get_offset_of_node(tree, v.idx()))
 		else {
 			// no node is selected, or it is not valid anymore
 			return;
@@ -686,7 +686,7 @@ where
 		let Some(current_pos) = self
 			.selected()
 			.and_then(|v| return tree.get_node(v))
-			.and_then(|v| return self.get_offset_of_node(tree, &v.idx()))
+			.and_then(|v| return self.get_offset_of_node(tree, v.idx()))
 		else {
 			// no node is selected, or it is not valid anymore
 			return;

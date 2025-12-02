@@ -376,7 +376,6 @@ impl FileSystemTree {
 		};
 		let focus_node = data
 			.focus_node
-			.map(PathBuf::from)
 			.or_else(|| return self.get_selected_path().map(Path::to_path_buf));
 
 		self.component.clear_tree();
@@ -398,7 +397,7 @@ impl FileSystemTree {
 			path,
 			2,
 			self.tx_to_main.clone(),
-			focus_node.map(|v| return v.to_string_lossy().to_string()),
+			focus_node,
 		);
 	}
 
@@ -438,9 +437,7 @@ impl FileSystemTree {
 		let vec = data.vec;
 		let initial_node = data.focus_node;
 
-		let initial_node = initial_node
-			.map(PathBuf::from)
-			.or_else(|| return self.get_selected_path().map(Path::to_path_buf));
+		let initial_node = initial_node.or_else(|| return self.get_selected_path().map(Path::to_path_buf));
 
 		let (_, tree) = recvec_to_tree(vec);
 
@@ -705,7 +702,7 @@ where
 /// Execute a FS scan on a different thread.
 ///
 /// Executes [`fs_dir_tree`] on a different thread and send a [`UserEvents::TreeNodeReady`] on finish
-fn fs_scan<P: Into<PathBuf>>(tracker: LoadTracker, path: P, depth: usize, tx: TxToMain, focus_node: Option<String>) {
+fn fs_scan<P: Into<PathBuf>>(tracker: LoadTracker, path: P, depth: usize, tx: TxToMain, focus_node: Option<PathBuf>) {
 	fs_scan_cb(tracker, path, depth, move |vec| {
 		let _ = tx.send(UserEvents::TreeNodeReady(LINodeReady { vec, focus_node }));
 	});
@@ -918,7 +915,7 @@ enum Msg {
 #[derive(Clone, Debug, Eq, Default)]
 pub struct LIReloadData {
 	pub change_root_path: Option<PathBuf>,
-	pub focus_node:       Option<String>,
+	pub focus_node:       Option<PathBuf>,
 }
 
 /// `PartialEq` is only used for subscriptions.
@@ -960,7 +957,7 @@ impl PartialEq for LIReloadPathData {
 #[derive(Clone, Debug, Eq)]
 pub struct LINodeReady {
 	pub vec:        RecVec,
-	pub focus_node: Option<String>,
+	pub focus_node: Option<PathBuf>,
 }
 
 /// Data returned from this should not be passed around.

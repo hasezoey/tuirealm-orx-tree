@@ -3,7 +3,6 @@
 //! Example usage:
 //!
 //! ```no_run
-//! # use tuirealm_orx_tree::component::{TreeView};
 //! # use tuirealm::{MockComponent, Component, NoUserEvent, Event};
 //! # use tuirealm::event::{
 //! # 	Key,
@@ -16,11 +15,11 @@
 //! # 	Direction,
 //! # };
 //! #
-//! type OurTree = TreeView<String>;
+//! type TreeView = tuirealm_orx_tree::component::TreeView<String>;
 //!
 //! #[derive(Debug, MockComponent)]
 //! struct OurComponent {
-//! 	component: OurTree
+//! 	component: TreeView
 //! }
 //! #
 //! # #[derive(Debug, Clone, PartialEq)]

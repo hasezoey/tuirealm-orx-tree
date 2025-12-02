@@ -17,7 +17,19 @@ tui-realm-stdlib = "~3.0"
 orx-tree = { version = "2.1", default-features = false, features = [] }
 
 [dev-dependencies]
+tuirealm = { version = "3.2.0", default-features = false, features = [
+	"derive",
+	"async-ports",
+] }
 pretty_assertions = "1.4"
+tokio = { version = "1.47", features = [
+	"sync",
+	"macros",
+	"rt",
+	"rt-multi-thread",
+	"parking_lot",
+	"process",
+] }
 
 [features]
 

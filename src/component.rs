@@ -231,7 +231,7 @@ where
 	}
 
 	/// Get the current tree mutably.
-	/// Instead of this function, other functions like [`get_node_mut`] should be used instead.
+	/// Instead of this function, other functions like [`get_node_mut`](Self::get_node_mut) should be used instead.
 	///
 	/// # Safety
 	///

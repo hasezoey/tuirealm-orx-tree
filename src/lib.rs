@@ -90,6 +90,9 @@ pub mod types;
 pub mod widget;
 
 // re-exports
+/// Fully re-export the backing storage, in case something extra is necessary
+pub use orx_tree;
+// re-export commonly used types for smaller imports
 pub use orx_tree::{
 	NodeRef,
 	Side,

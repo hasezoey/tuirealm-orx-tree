@@ -13,9 +13,9 @@ The current MSRV is `1.88`.
 
 The MSRV Policy is to base it on the highest required by `tuirealm` and `orx-tree`.
 
-## Vs `tuirealm-treeview`
+## Vs `tui-realm-treeview`
 
-The Biggest most differential difference is the backing tree implementation. `tui-realm-treeview` uses `orange-trees`, which is key-value based, and access is done via id(which is just find) or find, whereas `tuirealm-orx-tree` uses `orx-tree`, which only has values (to the user) and access is based on NodeIdx(pointers) or find.
+The Biggest most differential difference is the backing tree implementation. [`tui-realm-treeview`](https://crates.io/crates/tui-realm-treeview) uses [`orange-trees`](https://crates.io/crates/orange-trees/), which is key-value based, and access is done via id(which is just find) or find, whereas `tuirealm-orx-tree` uses [`orx-tree`](https://crates.io/crates/orx-tree), which only has values (to the user) and access is based on NodeIdx(pointers) or find.
 
 Other differniating factors as of writing are:
 

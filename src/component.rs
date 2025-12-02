@@ -384,7 +384,7 @@ where
 	/// May need to call [`open_all_parents`](Self::open_all_parents) to actually make it visible.
 	#[inline]
 	pub fn select(&mut self, node: NodeIdx<V>) {
-		self.state.select_set_offset(&self.tree, node);
+		self.state.select_with_offset(&self.tree, node);
 	}
 
 	/// Select a specific node **without** changing offset to be within view.

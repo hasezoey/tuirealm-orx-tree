@@ -211,9 +211,14 @@ where
 
 	/// Select a specific node or unselect the current node by setting it to `None`.
 	///
-	/// NOTE: this does *not* change the offset, use [`select_set_offset`](Self::select_set_offset) instead.
+	/// NOTE: this does *not* change the offset, use [`select_with_offset`](Self::select_with_offset) instead.
 	pub fn select(&mut self, node: Option<NodeIdx<V>>) {
 		self.selected = node;
+	}
+
+	/// Get the current select value.
+	pub fn selected(&self) -> Option<NodeIdx<V>> {
+		return self.selected;
 	}
 
 	/// Get a copy of the current offset.
@@ -225,6 +230,18 @@ where
 	#[expect(dead_code)]
 	pub(crate) fn get_offset_mut(&mut self) -> &mut Offset {
 		return &mut self.display_offset;
+	}
+
+	/// Select the given node and move the display offset so that it is within view.
+	pub fn select_with_offset(&mut self, tree: &Tree<V>, node: NodeIdx<V>) {
+		match self.get_offset_of_node(tree, node) {
+			Some(offset) => {
+				self.set_vert_offset(offset);
+			},
+			None => self.display_offset.reset(),
+		}
+
+		self.select(Some(node));
 	}
 
 	/// Calculate & set display offset for a new node_offset.
@@ -256,23 +273,11 @@ where
 		let next = self.get_next_node_down(tree);
 
 		if let Some(node) = next {
-			self.select_set_offset(tree, node);
+			self.select_with_offset(tree, node);
 		} else {
 			self.display_offset.reset();
 			self.select(None);
 		}
-	}
-
-	/// Select the given node and move the display offset so that it is within view.
-	pub fn select_set_offset(&mut self, tree: &Tree<V>, node: NodeIdx<V>) {
-		match self.get_offset_of_node(tree, node) {
-			Some(offset) => {
-				self.set_vert_offset(offset);
-			},
-			None => self.display_offset.reset(),
-		}
-
-		self.select(Some(node));
 	}
 
 	/// Select the next node upwards.
@@ -282,7 +287,7 @@ where
 		let next = self.get_next_node_up(tree);
 
 		if let Some(node) = next {
-			self.select_set_offset(tree, node);
+			self.select_with_offset(tree, node);
 		} else {
 			self.display_offset.reset();
 			self.select(None);
@@ -452,11 +457,6 @@ where
 		}
 
 		self.select(Some(next));
-	}
-
-	/// Get the current select value.
-	pub fn selected(&self) -> Option<NodeIdx<V>> {
-		return self.selected;
 	}
 
 	/// Change the display offset so that the currently selected node is always visible.

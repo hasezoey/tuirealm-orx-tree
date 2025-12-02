@@ -403,6 +403,8 @@ where
 
 		// get how many iterations / lines to scroll by, depending on if we are on the first visible element or somewhere in-between
 		let mut iterations = if old_offset < offset_curr_sel.saturating_sub(self.preview_distance_vertical) {
+			// current selection is still above old_offset (plus preview), so we dont scroll a page
+			// but select the first element in the visible area (plus preview distance)
 			offset_curr_sel
 				.saturating_sub(old_offset)
 				.saturating_sub(self.preview_distance_vertical)

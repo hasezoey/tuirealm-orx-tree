@@ -544,16 +544,16 @@ where
 	///   - Select the next sibling, or
 	///   - Select the next sibling of the parent (until hitting the root node, which returns `None`)
 	fn get_next_sibling_down<'a>(selected: &Node<'a, V>) -> Option<Node<'a, V>> {
-		let sibling_idx = selected.sibling_idx();
-		let parent = selected.parent()?;
+		let mut node_sibling_idx = selected.sibling_idx();
+		let mut parent = selected.parent()?;
 
-		// If we are on the last sibling of the current node, try next silbing of parent
-		if sibling_idx == parent.num_children().saturating_sub(1) {
-			return Self::get_next_sibling_down(&parent);
+		while node_sibling_idx == parent.num_children().saturating_sub(1) {
+			node_sibling_idx = parent.sibling_idx();
+			parent = parent.parent()?;
 		}
 
 		// We are not at the last sibling yet, so get the next sibling
-		return parent.get_child(sibling_idx + 1);
+		return parent.get_child(node_sibling_idx + 1);
 	}
 
 	/// Get the next node upwards, where:

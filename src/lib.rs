@@ -14,18 +14,40 @@
 //! #   CmdResult,
 //! # 	Direction,
 //! # };
+//! # use tuirealm::props::{Alignment, Color, BorderType, Borders};
+//! # use std::num::NonZeroUsize;
 //! #
+//! # #[derive(Debug, Clone, PartialEq)]
+//! # enum Msg {
+//! #  ForceRedraw
+//! # }
 //! type TreeView = tuirealm_orx_tree::component::TreeView<String>;
 //!
 //! #[derive(Debug, MockComponent)]
 //! struct OurComponent {
 //! 	component: TreeView
 //! }
-//! #
-//! # #[derive(Debug, Clone, PartialEq)]
-//! # enum Msg {
-//! #  ForceRedraw
-//! # }
+//!
+//! impl OurComponent {
+//! 	fn new() -> Self {
+//! 		Self {
+//! 			component: TreeView::default()
+//! 				.background(Color::Reset)
+//! 				.foreground(Color::White)
+//! 				.border(
+//! 					Borders::default()
+//! 						.color(Color::LightBlue)
+//! 						.modifiers(BorderType::Rounded),
+//! 				)
+//! 				.indent_size(2)
+//! 				.scroll_step_horizontal(NonZeroUsize::new(2).unwrap())
+//! 				.empty_tree_text("Loading...")
+//! 				.title(" Library ", Alignment::Left)
+//! 				.highlight_color(Color::Yellow)
+//! 				.highlight_symbol(">"),
+//! 		}
+//! 	}
+//! }
 //!
 //! impl Component<Msg, NoUserEvent> for OurComponent {
 //!		fn on(&mut self, ev: Event<NoUserEvent>) -> Option<Msg> {

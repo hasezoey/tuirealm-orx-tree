@@ -227,29 +227,23 @@ where
 		return &mut self.display_offset;
 	}
 
-	/// Calculate & set the display offset for downwards motion.
+	/// Calculate & set display offset for a new node_offset.
 	///
-	/// This does not change display offset if the new `node_offset` still fits within the curren display offset + height.
-	fn set_vert_offset_down(&mut self, node_offset: usize) {
+	/// This does not change the display offset if the new `node_offset` still fits within the current visible bounds (minus preview-distance).
+	fn set_vert_offset(&mut self, node_offset: usize) {
 		let area = self.last_tree_size.unwrap_or_default();
+		// convert it for easier usage and remove 1 as offsets are index(0) based.
 		let height_as_usize = usize::from(area.height.saturating_sub(1));
 
 		let old_offset = self.display_offset.get_vertical();
 
 		if (old_offset + height_as_usize).saturating_sub(self.preview_distance_vertical) < node_offset {
+			// downwards motion
 			self.display_offset.set_vertical(
 				node_offset.saturating_sub(height_as_usize.saturating_sub(self.preview_distance_vertical)),
 			);
-		}
-	}
-
-	/// Calculate & set the display offset for upwards motion.
-	///
-	/// This does not change display offset if the new `node_offset` still fits within the current display offset.
-	fn set_vert_offset_up(&mut self, node_offset: usize) {
-		let old_offset = self.display_offset.get_vertical();
-
-		if old_offset > node_offset.saturating_sub(self.preview_distance_vertical) {
+		} else if old_offset > node_offset.saturating_sub(self.preview_distance_vertical) {
+			// upwards motion
 			self.display_offset
 				.set_vertical(node_offset.saturating_sub(self.preview_distance_vertical));
 		}
@@ -273,7 +267,7 @@ where
 	pub fn select_downwards(&mut self, tree: &Tree<V>, node: NodeIdx<V>) {
 		match self.get_offset_of_node(tree, node) {
 			Some(offset) => {
-				self.set_vert_offset_down(offset);
+				self.set_vert_offset(offset);
 			},
 			None => self.display_offset.reset(),
 		}
@@ -299,7 +293,7 @@ where
 	pub fn select_upwards(&mut self, tree: &Tree<V>, node: NodeIdx<V>) {
 		match self.get_offset_of_node(tree, node) {
 			Some(offset) => {
-				self.set_vert_offset_up(offset);
+				self.set_vert_offset(offset);
 			},
 			None => self.display_offset.reset(),
 		}
@@ -323,7 +317,7 @@ where
 
 		match next.as_ref().and_then(|v| return self.get_offset_of_node(tree, *v)) {
 			Some(offset) => {
-				self.set_vert_offset_down(offset);
+				self.set_vert_offset(offset);
 			},
 			None => self.display_offset.reset(),
 		}
@@ -380,7 +374,7 @@ where
 
 		match self.get_offset_of_node(tree, next) {
 			Some(offset) => {
-				self.set_vert_offset_down(offset);
+				self.set_vert_offset(offset);
 			},
 			None => self.display_offset.reset(),
 		}
@@ -438,7 +432,7 @@ where
 
 		match self.get_offset_of_node(tree, next) {
 			Some(offset) => {
-				self.set_vert_offset_up(offset);
+				self.set_vert_offset(offset);
 			},
 			None => self.display_offset.reset(),
 		}
@@ -464,7 +458,7 @@ where
 
 		match self.get_offset_of_node(tree, next) {
 			Some(offset) => {
-				self.set_vert_offset_up(offset);
+				self.set_vert_offset(offset);
 			},
 			None => self.display_offset.reset(),
 		}
@@ -490,7 +484,7 @@ where
 			return;
 		};
 
-		self.set_vert_offset_down(current_pos);
+		self.set_vert_offset(current_pos);
 	}
 
 	/// Set the last known tree draw area (excluding the block).

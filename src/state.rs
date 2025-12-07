@@ -180,14 +180,12 @@ where
 	///
 	/// Does not open the node itself.
 	pub fn open_all_parents(&mut self, tree: &Tree<V>, node: NodeIdx<V>) {
-		let Some(mut node) = tree.get_node(node) else {
+		let Some(node) = tree.get_node(node) else {
 			return;
 		};
 
-		while let Some(parent) = node.parent() {
+		for parent in node.ancestors() {
 			self.open(parent.idx());
-
-			node = parent;
 		}
 	}
 

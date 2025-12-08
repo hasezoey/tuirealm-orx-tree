@@ -255,6 +255,42 @@ pub fn calc_area_for_value(display_offset_horiz: &mut usize, available_area: &mu
 	return value_area;
 }
 
+/// Render a symbol to the screen and remove the used-up space.
+#[derive(Debug, Clone, Copy)]
+pub struct Indicator;
+
+impl Indicator {
+	/// Render a single symbol with `draw_length` length allocated to it. This length should be *at least* the draw size of the character(s).
+	///
+	/// For example for japanese characters and most emojis this should be at least `2`.
+	/// This function does not do this draw length checking and trusts the input.
+	///
+	/// This will modify the given display offset and available area to remove the space this has been drawn on.
+	pub fn render(
+		symbol: &str,
+		draw_length: u16,
+		display_offset_horiz: &mut usize,
+		available_area: &mut Rect,
+		buf: &mut Buffer,
+	) {
+		let draw_area = calc_area_for_value(display_offset_horiz, available_area, usize::from(draw_length));
+
+		if draw_area.is_empty() {
+			return;
+		}
+
+		// clear the area in case allocated length is higher than the symbol length
+		Clear.render(draw_area, buf);
+
+		// Only draw the symbol in full and only at the beginning.
+		// This limitation is because we dont count grapheme length
+		// and can arbitrarily index into the string.
+		if draw_area.width >= draw_length {
+			symbol.render(draw_area, buf);
+		}
+	}
+}
+
 /// Render the open / closed symbol in the given area.
 ///
 /// Note that `cell_width` is the width of the biggest grapheme cluster of `open` & `closed`.
@@ -299,22 +335,7 @@ impl<'a> RenderIndicator<'a> {
 
 	/// Render the symbol based on `open` in the given `available_area`, but modify it to remove the used area.
 	pub fn render(&self, display_offset_horiz: &mut usize, available_area: &mut Rect, buf: &mut Buffer, open: bool) {
-		let draw_area = calc_area_for_value(display_offset_horiz, available_area, usize::from(self.allocate_length));
-
-		if draw_area.is_empty() {
-			return;
-		}
-
-		// clear the area in case allocated length is higher than the symbol length
-		Clear.render(draw_area, buf);
-
 		let symbol = if open { self.open } else { self.closed };
-
-		// Only draw the symbol in full and only at the beginning.
-		// This limitation is because we dont count grapheme length
-		// and can arbitrarily index into the string.
-		if draw_area.width >= self.allocate_length {
-			symbol.render(draw_area, buf);
-		}
+		Indicator::render(symbol, self.allocate_length, display_offset_horiz, available_area, buf);
 	}
 }

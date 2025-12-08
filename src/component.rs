@@ -40,6 +40,7 @@ use crate::{
 	},
 	widget::{
 		DEFAULT_INDENT,
+		HighlightDrawBehavior,
 		TreeWidget,
 	},
 };
@@ -56,6 +57,8 @@ pub mod attr {
 	pub const VERT_SCROLL_STEP: &str = "vert-scroll-step";
 	/// Attribute to control the width of a highlight symbol
 	pub const HG_DRAW_WIDTH: &str = "hg-draw-width";
+	/// Attribute to control the draw behavior of the highlight symbol
+	pub const HG_DRAW_BEHAVIOR: &str = "hg-draw-behavior";
 }
 
 /// Custom commands for [`Cmd::Custom`] (/ [`TreeView::perform`]).
@@ -179,6 +182,18 @@ where
 	/// By default this is [`DEFAULT_HG_WIDTH`](crate::widget::DEFAULT_HG_WIDTH).
 	pub fn highlight_symbol_draw_width(mut self, width: u16) -> Self {
 		self.attr(Attribute::Custom(attr::HG_DRAW_WIDTH), AttrValue::Size(width));
+
+		return self;
+	}
+
+	/// Set the Highlight Symbol draw behavior.
+	///
+	/// See [`HighlightDrawBehavior`] for available and default behavior.
+	pub fn highlight_symbol_draw_behavior(mut self, behavior: HighlightDrawBehavior) -> Self {
+		self.attr(
+			Attribute::Custom(attr::HG_DRAW_BEHAVIOR),
+			AttrValue::Size(behavior.to_u16()),
+		);
 
 		return self;
 	}
@@ -481,6 +496,11 @@ where
 			.get_ref(Attribute::Custom(attr::HG_DRAW_WIDTH))
 			.and_then(AttrValue::as_size)
 			.unwrap_or(2);
+		let hg_behavior = self
+			.props
+			.get_ref(Attribute::Custom(attr::HG_DRAW_BEHAVIOR))
+			.and_then(AttrValue::as_size)
+			.map_or(HighlightDrawBehavior::default(), HighlightDrawBehavior::from_u16);
 		// dont have the highlight be too disrupting while not focused
 		let hg_style = if focus {
 			// TODO: consider making this more configurable
@@ -504,10 +524,12 @@ where
 			.block(block)
 			.style(style)
 			.hg_style(hg_style)
+			.hg_draw_behavior(hg_behavior)
+			.hg_width(hg_width)
 			.indent(indent);
 
 		if let Some(hg_str) = hg_str {
-			widget = widget.hg_str(hg_str).hg_width(hg_width);
+			widget = widget.hg_str(hg_str);
 		}
 		if let Some(empty_tree_text) = empty_tree_text {
 			widget = widget.empty_tree_text(empty_tree_text);

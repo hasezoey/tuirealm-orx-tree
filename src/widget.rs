@@ -57,17 +57,19 @@ pub struct TreeWidget<'a, V: NodeValue> {
 	tree: &'a Tree<V>,
 
 	/// The main style of the tree
-	main_style:  Style,
+	main_style:       Style,
 	/// The Highlight Style for the currently highlighted element
-	hg_style:    Style,
+	hg_style:         Style,
 	/// The Highlight symbol for the currently highlighted element
-	hg_str:      Option<&'a str>,
+	hg_str:           Option<&'a str>,
 	/// The Highlight symbol draw width
-	hg_width:    u16,
+	hg_width:         u16,
+	/// The Highlight symbol draw behavior
+	hg_draw_behavior: HighlightDrawBehavior,
 	/// How much to indent a child compared to the parent
-	indent_size: usize,
+	indent_size:      usize,
 	/// Optional block to render around the widget itself
-	block:       Option<Block<'a>>,
+	block:            Option<Block<'a>>,
 
 	/// Text to display if the tree is empty (not even a root node)
 	empty_tree_text: &'a str,
@@ -85,6 +87,7 @@ where
 			hg_style: Style::default(),
 			hg_str: None,
 			hg_width: DEFAULT_HG_WIDTH,
+			hg_draw_behavior: HighlightDrawBehavior::default(),
 			indent_size: DEFAULT_INDENT,
 			block: None,
 			empty_tree_text: DEFAULT_EMPTY_TREE_TEXT,
@@ -124,6 +127,15 @@ where
 	/// By default [`DEFAULT_HG_WIDTH`].
 	pub fn hg_width(mut self, width: u16) -> Self {
 		self.hg_width = width;
+
+		return self;
+	}
+
+	/// Set the Highlight Symbol Draw behavior.
+	///
+	/// See [`HighlightDrawBehavior`] for available and default behavior.
+	pub fn hg_draw_behavior(mut self, behavior: HighlightDrawBehavior) -> Self {
+		self.hg_draw_behavior = behavior;
 
 		return self;
 	}
@@ -203,6 +215,12 @@ where
 			// get the indent for this node to visually indicate it is part of something
 			let mut indent = depth * self.indent_size;
 
+			// in the static case, we want to indent everything by the highlight symbol draw width, except the currently selected one
+			// which will later be decremented again.
+			if self.hg_draw_behavior == HighlightDrawBehavior::Static {
+				indent += usize::from(self.hg_width);
+			}
+
 			let mut line_area = remaining_area;
 			// This can be done without clamping, as we at this point know that the area is not empty,
 			// so it must have at least one width and one height.
@@ -214,6 +232,7 @@ where
 
 			if is_selected && let Some(hg_symbol) = self.hg_str {
 				Indicator::render(hg_symbol, self.hg_width, &mut display_offset_horiz, &mut line_area, buf);
+				// in both "CombineIndent" and "Static" cases, we want to remove it from the indent again.
 				indent = indent.saturating_sub(usize::from(self.hg_width));
 			}
 
@@ -233,6 +252,39 @@ where
 			remaining_area.height = remaining_area.height.saturating_sub(1);
 			remaining_area.y += 1;
 		}
+	}
+}
+
+/// Set the Highlight Symbol Draw behavior.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[repr(u16)]
+pub enum HighlightDrawBehavior {
+	/// Combine Highlight symbol width and indent, if possible.
+	///
+	/// Where not possible, the remainder will get indented by highlight symbol, only if it is currently selected.
+	///
+	/// This is the default.
+	#[default]
+	CombineIndent = 0,
+	/// Always add Highlight symbol width to the indent to make for a more static feeling experience.
+	Static        = 1,
+}
+
+impl HighlightDrawBehavior {
+	/// Represent the current value as a `u16` for attribute storage.
+	pub fn to_u16(self) -> u16 {
+		return self as u16;
+	}
+
+	/// Get the value from a `u16`.
+	///
+	/// This assumes only the valid numbers are used from [`to_u16`](Self::to_u16).
+	pub fn from_u16(val: u16) -> Self {
+		return match val {
+			0 => Self::CombineIndent,
+			1 => Self::Static,
+			_ => unreachable!(),
+		};
 	}
 }
 

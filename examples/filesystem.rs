@@ -195,6 +195,7 @@ impl FileSystemTree {
 			.empty_tree_text("Loading...")
 			.title(" Filesystem ", Alignment::Left)
 			.highlight_color(Color::Yellow)
+			// .highlight_symbol_draw_behavior(tuirealm_orx_tree::widget::HighlightDrawBehavior::Static)
 			.highlight_symbol(">");
 	}
 

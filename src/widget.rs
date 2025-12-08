@@ -62,6 +62,8 @@ pub struct TreeWidget<'a, V: NodeValue> {
 	hg_style:         Style,
 	/// The Highlight symbol for the currently highlighted element
 	hg_str:           Option<&'a str>,
+	/// Custom Highlight symbol style
+	hg_str_style:     Option<Style>,
 	/// The Highlight symbol draw width
 	hg_width:         u16,
 	/// The Highlight symbol draw behavior
@@ -88,6 +90,7 @@ where
 			main_style: Style::default(),
 			hg_style: Style::default(),
 			hg_str: None,
+			hg_str_style: None,
 			hg_width: DEFAULT_HG_WIDTH,
 			hg_draw_behavior: HighlightDrawBehavior::default(),
 			indent_size: DEFAULT_INDENT,
@@ -121,6 +124,15 @@ where
 	/// Set the Highlight Symbol to draw in addition to the line itself.
 	pub fn hg_str(mut self, val: &'a str) -> Self {
 		self.hg_str = Some(val);
+
+		return self;
+	}
+
+	/// Set a custom style to use for the Highlight symbol area.
+	///
+	/// By default the common style is used for that area.
+	pub fn hg_str_style(mut self, style: Style) -> Self {
+		self.hg_str_style = Some(style);
 
 		return self;
 	}
@@ -244,13 +256,18 @@ where
 			let use_style = if is_selected { self.hg_style } else { self.main_style };
 
 			if is_selected && let Some(hg_symbol) = self.hg_str {
+				let hg_sym_style = if let Some(style) = self.hg_str_style {
+					style
+				} else {
+					use_style
+				};
 				Indicator::render(
 					hg_symbol,
 					self.hg_width,
 					&mut display_offset_horiz,
 					&mut line_area,
 					buf,
-					Some(use_style),
+					Some(hg_sym_style),
 				);
 				// in both "CombineIndent" and "Static" cases, we want to remove it from the indent again.
 				indent = indent.saturating_sub(usize::from(self.hg_width));

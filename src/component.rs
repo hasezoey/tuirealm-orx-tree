@@ -55,11 +55,13 @@ pub mod attr {
 	pub const HORIZ_SCROLL_STEP: &str = "horiz-scroll-step";
 	/// Attribute to control the vertical scroll stepping
 	pub const VERT_SCROLL_STEP: &str = "vert-scroll-step";
+	/// Attribute for a custom style for the highlight symbol
+	pub const HG_SYM_STYLE: &str = "hg-symbol-style";
 	/// Attribute to control the width of a highlight symbol
 	pub const HG_DRAW_WIDTH: &str = "hg-draw-width";
 	/// Attribute to control the draw behavior of the highlight symbol
 	pub const HG_DRAW_BEHAVIOR: &str = "hg-draw-behavior";
-	/// Attribute to determine a custom indent style
+	/// Attribute for a custom indent style
 	pub const INDENT_STYLE: &str = "style-indent";
 }
 
@@ -160,7 +162,7 @@ where
 	///
 	/// By default the common style is used for that area.
 	///
-	/// If the Indent area should *not* be styled, input [`Style::default`] here.
+	/// If the Area should *not* be styled, input [`Style::default`] here.
 	pub fn indent_style(mut self, style: Style) -> Self {
 		self.attr(Attribute::Custom(attr::INDENT_STYLE), AttrValue::Style(style));
 
@@ -184,6 +186,17 @@ where
 	/// Set the current curser selection symbol.
 	pub fn highlight_symbol<S: Into<String>>(mut self, val: S) -> Self {
 		self.attr(Attribute::HighlightedStr, AttrValue::String(val.into()));
+
+		return self;
+	}
+
+	/// Set a custom style for the Highlight symbol area.
+	///
+	/// By default the common style is used for that area.
+	///
+	/// If the Area should *not* be styled, input [`Style::default`] here.
+	pub fn highlight_symbol_style(mut self, style: Style) -> Self {
+		self.attr(Attribute::Custom(attr::HG_SYM_STYLE), AttrValue::Style(style));
 
 		return self;
 	}
@@ -501,6 +514,10 @@ where
 			.props
 			.get_ref(Attribute::HighlightedStr)
 			.and_then(AttrValue::as_string);
+		let hg_str_style = self
+			.props
+			.get_ref(Attribute::Custom(attr::HG_SYM_STYLE))
+			.and_then(AttrValue::as_style);
 		let hg_width = self
 			.props
 			.get_ref(Attribute::Custom(attr::HG_DRAW_WIDTH))
@@ -547,6 +564,9 @@ where
 		}
 		if let Some(hg_str) = hg_str {
 			widget = widget.hg_str(hg_str);
+		}
+		if let Some(hg_str_style) = hg_str_style {
+			widget = widget.hg_str_style(hg_str_style);
 		}
 		if let Some(empty_tree_text) = empty_tree_text {
 			widget = widget.empty_tree_text(empty_tree_text);

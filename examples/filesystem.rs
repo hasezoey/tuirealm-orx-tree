@@ -194,10 +194,12 @@ impl FileSystemTree {
 					.modifiers(BorderType::Rounded),
 			)
 			.indent_size(2)
+			// .indent_style(Style::default())
 			.scroll_step_horizontal(NonZeroUsize::new(2).unwrap())
 			.empty_tree_text("Loading...")
 			.title(" Filesystem ", Alignment::Left)
 			.highlight_color(Color::Yellow)
+			// .highlight_symbol_style(Style::default())
 			// .highlight_symbol_draw_behavior(tuirealm_orx_tree::widget::HighlightDrawBehavior::Static)
 			.highlight_symbol(">");
 	}

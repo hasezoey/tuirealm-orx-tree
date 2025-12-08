@@ -1,6 +1,6 @@
 # Changelog
 
-## next
+## 0.2.0
 
 - Add `widget::Indicator` to draw a single indicator
 - Rename `widget::RenderIndicator` to `widget::OrIndicators`

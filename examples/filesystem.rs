@@ -160,12 +160,15 @@ impl NodeValue for FSTreeData {
 			let leaf_indent = CHILD_INDICATOR_LENGTH;
 			let indent_area = calc_area_for_value(&mut offset, &mut area, usize::from(leaf_indent));
 			Clear.render(indent_area, buf);
+			buf.set_style(indent_area, style);
 		} else if !self.is_loading {
 			// directory that is not loading
-			OrIndicators::default().render(&mut offset, &mut area, buf, is_opened());
+			OrIndicators::default()
+				.with_style(style.fg(Color::Reset))
+				.render(&mut offset, &mut area, buf, is_opened());
 		} else {
 			// directory that is loading
-			Indicator::render(LOADING_SYMBOL, 2, &mut offset, &mut area, buf);
+			Indicator::render(LOADING_SYMBOL, 2, &mut offset, &mut area, buf, Some(style));
 		}
 
 		self.render(buf, area, offset, style);

@@ -229,9 +229,17 @@ where
 			let mut display_offset_horiz = remaining_offset.get_horizontal();
 
 			let is_selected = state.is_selected(&node.idx());
+			let use_style = if is_selected { self.hg_style } else { self.main_style };
 
 			if is_selected && let Some(hg_symbol) = self.hg_str {
-				Indicator::render(hg_symbol, self.hg_width, &mut display_offset_horiz, &mut line_area, buf);
+				Indicator::render(
+					hg_symbol,
+					self.hg_width,
+					&mut display_offset_horiz,
+					&mut line_area,
+					buf,
+					Some(use_style),
+				);
 				// in both "CombineIndent" and "Static" cases, we want to remove it from the indent again.
 				indent = indent.saturating_sub(usize::from(self.hg_width));
 			}
@@ -240,8 +248,7 @@ where
 
 			// render the indent
 			Clear.render(clear_area, buf);
-
-			let use_style = if is_selected { self.hg_style } else { self.main_style };
+			buf.set_style(clear_area, use_style);
 
 			// render the main data
 			node.data()
@@ -336,6 +343,8 @@ impl Indicator {
 	///
 	/// This will modify the given display offset and available area to remove the space this has been drawn on.
 	///
+	/// Note that this function will [`Clear`] the used area, so the style, unless set, may be reset.
+	///
 	/// Limitation: this implementation expects only a single drawable character,
 	/// if more are provided, they will only be drawn in full or not at all.
 	///
@@ -346,6 +355,7 @@ impl Indicator {
 		display_offset_horiz: &mut usize,
 		available_area: &mut Rect,
 		buf: &mut Buffer,
+		style: Option<Style>,
 	) {
 		let draw_area = calc_area_for_value(display_offset_horiz, available_area, usize::from(draw_length));
 
@@ -360,6 +370,9 @@ impl Indicator {
 		// This limitation is because we dont count grapheme length
 		// and can arbitrarily index into the string.
 		if draw_area.width >= draw_length {
+			if let Some(style) = style {
+				buf.set_style(draw_area, style);
+			}
 			symbol.render(draw_area, buf);
 		}
 	}
@@ -383,6 +396,8 @@ pub struct OrIndicators<'a> {
 	on_false:        &'a str,
 	/// The cell length to allocate for the symbols
 	allocate_length: u16,
+	/// The Style to use for the indicator area
+	style:           Option<Style>,
 }
 
 impl Default for OrIndicators<'static> {
@@ -391,6 +406,7 @@ impl Default for OrIndicators<'static> {
 			on_true:         CHILD_OPENED_INDICATOR,
 			on_false:        CHILD_CLOSED_INDICATOR,
 			allocate_length: CHILD_INDICATOR_LENGTH,
+			style:           None,
 		};
 	}
 }
@@ -406,12 +422,28 @@ impl<'a> OrIndicators<'a> {
 			on_true:         open,
 			on_false:        closed,
 			allocate_length: length,
+			style:           None,
 		};
+	}
+
+	/// Set the style to use for the indicator area.
+	#[must_use]
+	pub const fn with_style(mut self, style: Style) -> Self {
+		self.style = Some(style);
+
+		return self;
 	}
 
 	/// Render the symbol based on `open` in the given `available_area`, but modify it to remove the used area.
 	pub fn render(&self, display_offset_horiz: &mut usize, available_area: &mut Rect, buf: &mut Buffer, state: bool) {
 		let symbol = if state { self.on_true } else { self.on_false };
-		Indicator::render(symbol, self.allocate_length, display_offset_horiz, available_area, buf);
+		Indicator::render(
+			symbol,
+			self.allocate_length,
+			display_offset_horiz,
+			available_area,
+			buf,
+			self.style,
+		);
 	}
 }

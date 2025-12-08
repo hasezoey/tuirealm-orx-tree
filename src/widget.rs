@@ -187,7 +187,7 @@ where
 			}
 
 			// get the indent for this node to visually indicate it is part of something
-			let indent = depth * self.indent_size;
+			let mut indent = depth * self.indent_size;
 
 			let mut line_area = remaining_area;
 			// This can be done without clamping, as we at this point know that the area is not empty,
@@ -196,16 +196,20 @@ where
 			line_area.height = 1;
 			let mut display_offset_horiz = remaining_offset.get_horizontal();
 
+			let is_selected = state.is_selected(&node.idx());
+
+			if is_selected && let Some(hg_symbol) = self.hg_str {
+				// TODO: let the user configure draw width
+				Indicator::render(hg_symbol, 2, &mut display_offset_horiz, &mut line_area, buf);
+				indent = indent.saturating_sub(2);
+			}
+
 			let clear_area = calc_area_for_value(&mut display_offset_horiz, &mut line_area, indent);
 
 			// render the indent
 			Clear.render(clear_area, buf);
 
-			let use_style = if state.is_selected(&node.idx()) {
-				self.hg_style
-			} else {
-				self.main_style
-			};
+			let use_style = if is_selected { self.hg_style } else { self.main_style };
 
 			// render the main data
 			node.data()

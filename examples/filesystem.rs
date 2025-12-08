@@ -80,7 +80,7 @@ use tuirealm_orx_tree::types::NodeIdx;
 use tuirealm_orx_tree::widget::{
 	CHILD_INDICATOR_LENGTH,
 	Indicator,
-	RenderIndicator,
+	OrIndicators,
 	calc_area_for_value,
 };
 use tuirealm_orx_tree::{
@@ -162,7 +162,7 @@ impl NodeValue for FSTreeData {
 			Clear.render(indent_area, buf);
 		} else if !self.is_loading {
 			// directory that is not loading
-			RenderIndicator::default().render(&mut offset, &mut area, buf, is_opened());
+			OrIndicators::default().render(&mut offset, &mut area, buf, is_opened());
 		} else {
 			// directory that is loading
 			Indicator::render(LOADING_SYMBOL, 2, &mut offset, &mut area, buf);

@@ -19,7 +19,7 @@ use tuirealm::{
 
 use crate::widget::{
 	CHILD_INDICATOR_LENGTH,
-	RenderIndicator,
+	OrIndicators,
 	calc_area_for_value,
 };
 
@@ -62,7 +62,7 @@ pub trait NodeValue {
 			let indent_area = calc_area_for_value(&mut offset, &mut area, usize::from(leaf_indent));
 			Clear.render(indent_area, buf);
 		} else {
-			RenderIndicator::default().render(&mut offset, &mut area, buf, is_opened());
+			OrIndicators::default().render(&mut offset, &mut area, buf, is_opened());
 		}
 
 		self.render(buf, area, offset, style);

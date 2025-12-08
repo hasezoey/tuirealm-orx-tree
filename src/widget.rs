@@ -266,6 +266,11 @@ impl Indicator {
 	/// This function does not do this draw length checking and trusts the input.
 	///
 	/// This will modify the given display offset and available area to remove the space this has been drawn on.
+	///
+	/// Limitation: this implementation expects only a single drawable character,
+	/// if more are provided, they will only be drawn in full or not at all.
+	///
+	/// Example: if `123` is input as a symbol and `4` as the length, then it will only display `123 ` or `   `(offset 1), never `23 `.
 	pub fn render(
 		symbol: &str,
 		draw_length: u16,
@@ -291,35 +296,37 @@ impl Indicator {
 	}
 }
 
-/// Render the open / closed symbol in the given area.
+/// Render the true/false symbol based on the given state in the given area.
 ///
-/// Note that `cell_width` is the width of the biggest grapheme cluster of `open` & `closed`.
+/// The default is [`CHILD_OPENED_INDICATOR`] and [`CHILD_CLOSED_INDICATOR`] for open/closed drawing.
 ///
-/// Limitation: this implementation expects only a single drawable character in `open` and `closed`,
+/// Note that the `allocate_length` should be at least the draw width of the biggest character.
+///
+/// Limitation: this implementation expects only a single drawable character in either state,
 /// if more are provided, they will only be drawn in full or not at all.
 ///
 /// Example: if `123` is input as a symbol and `4` as the length, then it will only display `123 ` or `   `(offset 1), never `23 `.
 #[derive(Debug, Clone)]
-pub struct RenderIndicator<'a> {
-	/// The indicator text to draw for the "opened" state
-	open:            &'a str,
-	/// The indicator text to draw for the "closed" state
-	closed:          &'a str,
+pub struct OrIndicators<'a> {
+	/// The indicator text to draw for the "true" state
+	on_true:         &'a str,
+	/// The indicator text to draw for the "false" state
+	on_false:        &'a str,
 	/// The cell length to allocate for the symbols
 	allocate_length: u16,
 }
 
-impl Default for RenderIndicator<'static> {
+impl Default for OrIndicators<'static> {
 	fn default() -> Self {
 		return Self {
-			open:            CHILD_OPENED_INDICATOR,
-			closed:          CHILD_CLOSED_INDICATOR,
+			on_true:         CHILD_OPENED_INDICATOR,
+			on_false:        CHILD_CLOSED_INDICATOR,
 			allocate_length: CHILD_INDICATOR_LENGTH,
 		};
 	}
 }
 
-impl<'a> RenderIndicator<'a> {
+impl<'a> OrIndicators<'a> {
 	/// Create a new instance with custom indicators.
 	///
 	/// Note: it should be ensured that `open` and `closed` are fitting within `length`.
@@ -327,15 +334,15 @@ impl<'a> RenderIndicator<'a> {
 	#[inline]
 	pub const fn new(open: &'a str, closed: &'a str, length: u16) -> Self {
 		return Self {
-			open,
-			closed,
+			on_true:         open,
+			on_false:        closed,
 			allocate_length: length,
 		};
 	}
 
 	/// Render the symbol based on `open` in the given `available_area`, but modify it to remove the used area.
-	pub fn render(&self, display_offset_horiz: &mut usize, available_area: &mut Rect, buf: &mut Buffer, open: bool) {
-		let symbol = if open { self.open } else { self.closed };
+	pub fn render(&self, display_offset_horiz: &mut usize, available_area: &mut Rect, buf: &mut Buffer, state: bool) {
+		let symbol = if state { self.on_true } else { self.on_false };
 		Indicator::render(symbol, self.allocate_length, display_offset_horiz, available_area, buf);
 	}
 }

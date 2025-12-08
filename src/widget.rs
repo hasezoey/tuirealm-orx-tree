@@ -44,6 +44,8 @@ pub const CHILD_INDICATOR_LENGTH: u16 = 2;
 pub const DEFAULT_INDENT: usize = 2;
 /// Default text to display if the tree is empty.
 pub const DEFAULT_EMPTY_TREE_TEXT: &str = "The Tree is empty";
+/// Default Highlight Symbol draw width.
+pub const DEFAULT_HG_WIDTH: u16 = 2;
 
 /// The ratatui widget to draw.
 ///
@@ -60,6 +62,8 @@ pub struct TreeWidget<'a, V: NodeValue> {
 	hg_style:    Style,
 	/// The Highlight symbol for the currently highlighted element
 	hg_str:      Option<&'a str>,
+	/// The Highlight symbol draw width
+	hg_width:    u16,
 	/// How much to indent a child compared to the parent
 	indent_size: usize,
 	/// Optional block to render around the widget itself
@@ -80,6 +84,7 @@ where
 			main_style: Style::default(),
 			hg_style: Style::default(),
 			hg_str: None,
+			hg_width: DEFAULT_HG_WIDTH,
 			indent_size: DEFAULT_INDENT,
 			block: None,
 			empty_tree_text: DEFAULT_EMPTY_TREE_TEXT,
@@ -110,6 +115,15 @@ where
 	/// Set the Highlight Symbol to draw in addition to the line itself.
 	pub fn hg_str(mut self, val: &'a str) -> Self {
 		self.hg_str = Some(val);
+
+		return self;
+	}
+
+	/// Set the Highlight Symbol draw width.
+	///
+	/// By default [`DEFAULT_HG_WIDTH`].
+	pub fn hg_width(mut self, width: u16) -> Self {
+		self.hg_width = width;
 
 		return self;
 	}
@@ -199,9 +213,8 @@ where
 			let is_selected = state.is_selected(&node.idx());
 
 			if is_selected && let Some(hg_symbol) = self.hg_str {
-				// TODO: let the user configure draw width
-				Indicator::render(hg_symbol, 2, &mut display_offset_horiz, &mut line_area, buf);
-				indent = indent.saturating_sub(2);
+				Indicator::render(hg_symbol, self.hg_width, &mut display_offset_horiz, &mut line_area, buf);
+				indent = indent.saturating_sub(usize::from(self.hg_width));
 			}
 
 			let clear_area = calc_area_for_value(&mut display_offset_horiz, &mut line_area, indent);

@@ -54,6 +54,8 @@ pub mod attr {
 	pub const HORIZ_SCROLL_STEP: &str = "horiz-scroll-step";
 	/// Attribute to control the vertical scroll stepping
 	pub const VERT_SCROLL_STEP: &str = "vert-scroll-step";
+	/// Attribute to control the width of a highlight symbol
+	pub const HG_DRAW_WIDTH: &str = "hg-draw-width";
 }
 
 /// Custom commands for [`Cmd::Custom`] (/ [`TreeView::perform`]).
@@ -166,6 +168,17 @@ where
 	/// Set the current curser selection symbol.
 	pub fn highlight_symbol<S: Into<String>>(mut self, val: S) -> Self {
 		self.attr(Attribute::HighlightedStr, AttrValue::String(val.into()));
+
+		return self;
+	}
+
+	/// Set the draw length for the current highlight symbol.
+	///
+	/// It is recommended to set this to match indent.
+	///
+	/// By default this is [`DEFAULT_HG_WIDTH`](crate::widget::DEFAULT_HG_WIDTH).
+	pub fn highlight_symbol_draw_width(mut self, width: u16) -> Self {
+		self.attr(Attribute::Custom(attr::HG_DRAW_WIDTH), AttrValue::Size(width));
 
 		return self;
 	}
@@ -463,6 +476,11 @@ where
 			.props
 			.get_ref(Attribute::HighlightedStr)
 			.and_then(AttrValue::as_string);
+		let hg_width = self
+			.props
+			.get_ref(Attribute::Custom(attr::HG_DRAW_WIDTH))
+			.and_then(AttrValue::as_size)
+			.unwrap_or(2);
 		// dont have the highlight be too disrupting while not focused
 		let hg_style = if focus {
 			// TODO: consider making this more configurable
@@ -489,7 +507,7 @@ where
 			.indent(indent);
 
 		if let Some(hg_str) = hg_str {
-			widget = widget.hg_str(hg_str);
+			widget = widget.hg_str(hg_str).hg_width(hg_width);
 		}
 		if let Some(empty_tree_text) = empty_tree_text {
 			widget = widget.empty_tree_text(empty_tree_text);

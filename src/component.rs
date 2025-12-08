@@ -59,6 +59,8 @@ pub mod attr {
 	pub const HG_DRAW_WIDTH: &str = "hg-draw-width";
 	/// Attribute to control the draw behavior of the highlight symbol
 	pub const HG_DRAW_BEHAVIOR: &str = "hg-draw-behavior";
+	/// Attribute to determine a custom indent style
+	pub const INDENT_STYLE: &str = "style-indent";
 }
 
 /// Custom commands for [`Cmd::Custom`] (/ [`TreeView::perform`]).
@@ -150,6 +152,17 @@ where
 	/// Default: [`DEFAULT_INDENT`]
 	pub fn indent_size(mut self, indent: usize) -> Self {
 		self.attr(Attribute::Custom(attr::INDENT), AttrValue::Length(indent));
+
+		return self;
+	}
+
+	/// Set a custom style to use for the indent area.
+	///
+	/// By default the common style is used for that area.
+	///
+	/// If the Indent area should *not* be styled, input [`Style::default`] here.
+	pub fn indent_style(mut self, style: Style) -> Self {
+		self.attr(Attribute::Custom(attr::INDENT_STYLE), AttrValue::Style(style));
 
 		return self;
 	}
@@ -479,10 +492,7 @@ where
 			.props
 			.get_or(Attribute::Focus, AttrValue::Flag(false))
 			.unwrap_flag();
-		let inactive_style = self
-			.props
-			.get(Attribute::FocusStyle)
-			.map(tuirealm::AttrValue::unwrap_style);
+		let inactive_style = self.props.get(Attribute::FocusStyle).map(AttrValue::unwrap_style);
 		let hg_color = self
 			.props
 			.get_or(Attribute::HighlightedColor, AttrValue::Color(foreground))
@@ -501,6 +511,10 @@ where
 			.get_ref(Attribute::Custom(attr::HG_DRAW_BEHAVIOR))
 			.and_then(AttrValue::as_size)
 			.map_or(HighlightDrawBehavior::default(), HighlightDrawBehavior::from_u16);
+		let indent_style = self
+			.props
+			.get_ref(Attribute::Custom(attr::INDENT_STYLE))
+			.and_then(AttrValue::as_style);
 		// dont have the highlight be too disrupting while not focused
 		let hg_style = if focus {
 			// TODO: consider making this more configurable
@@ -528,6 +542,9 @@ where
 			.hg_width(hg_width)
 			.indent(indent);
 
+		if let Some(indent_style) = indent_style {
+			widget = widget.indent_style(indent_style);
+		}
 		if let Some(hg_str) = hg_str {
 			widget = widget.hg_str(hg_str);
 		}

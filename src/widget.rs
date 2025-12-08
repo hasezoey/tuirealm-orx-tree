@@ -68,6 +68,8 @@ pub struct TreeWidget<'a, V: NodeValue> {
 	hg_draw_behavior: HighlightDrawBehavior,
 	/// How much to indent a child compared to the parent
 	indent_size:      usize,
+	/// Custom Indent Style
+	indent_style:     Option<Style>,
 	/// Optional block to render around the widget itself
 	block:            Option<Block<'a>>,
 
@@ -89,6 +91,7 @@ where
 			hg_width: DEFAULT_HG_WIDTH,
 			hg_draw_behavior: HighlightDrawBehavior::default(),
 			indent_size: DEFAULT_INDENT,
+			indent_style: None,
 			block: None,
 			empty_tree_text: DEFAULT_EMPTY_TREE_TEXT,
 		};
@@ -145,6 +148,15 @@ where
 	/// Default: [`DEFAULT_INDENT`]
 	pub fn indent(mut self, indent: usize) -> Self {
 		self.indent_size = indent;
+
+		return self;
+	}
+
+	/// Set a custom style to use for the indent area.
+	///
+	/// By default the common style is used for that area.
+	pub fn indent_style(mut self, style: Style) -> Self {
+		self.indent_style = Some(style);
 
 		return self;
 	}
@@ -248,7 +260,13 @@ where
 
 			// render the indent
 			Clear.render(clear_area, buf);
-			buf.set_style(clear_area, use_style);
+
+			let indent_style = if let Some(indent_style) = self.indent_style {
+				indent_style
+			} else {
+				use_style
+			};
+			buf.set_style(clear_area, indent_style);
 
 			// render the main data
 			node.data()

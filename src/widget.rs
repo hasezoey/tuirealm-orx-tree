@@ -189,6 +189,7 @@ where
 	type State = TreeViewState<V>;
 
 	fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
+		buf.set_style(area, self.main_style);
 		// render the block, if set
 		let area = if let Some(block) = self.block {
 			let inner = block.inner(area);

@@ -3,7 +3,8 @@
 ## next
 
 - Add a setting to control `inactive` border style, like `tui-realm-stdlib`
-- Dont draw any `Clear`s as this completely resets everything, including styles.
+- Dont draw any `Clear`s as this completely resets everything, including styles
+- Apply main-style to whole given component area, and let it be overwritten by more specific styles where necessary
 
 ## 0.2.0
 

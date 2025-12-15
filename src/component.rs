@@ -271,6 +271,17 @@ where
 		return self;
 	}
 
+	/// Set a custom style to use for the block if the component is not focused.
+	///
+	/// If unset, the common style is used.
+	///
+	/// Note that style set in [`broder`](Self::border) will be overwritten when unfocused.
+	pub fn inactive_style(mut self, style: Style) -> Self {
+		self.attr(Attribute::FocusStyle, AttrValue::Style(style));
+
+		return self;
+	}
+
 	/// Get the currently selected node, if there is one and it still being valid.
 	///
 	/// This can be used as a [`Cmd::Submit`] substitute.
@@ -491,6 +502,8 @@ where
 			.get_or(Attribute::Background, AttrValue::Color(Color::Reset))
 			.unwrap_color();
 
+		let style = Style::default().fg(foreground).bg(background);
+
 		let title = tui_realm_stdlib::utils::get_title_or_center(&self.props);
 		let empty_tree_text = self
 			.props
@@ -505,7 +518,10 @@ where
 			.props
 			.get_or(Attribute::Focus, AttrValue::Flag(false))
 			.unwrap_flag();
-		let inactive_style = self.props.get(Attribute::FocusStyle).map(AttrValue::unwrap_style);
+		let inactive_style = self
+			.props
+			.get(Attribute::FocusStyle)
+			.map_or(style, AttrValue::unwrap_style);
 		let hg_color = self
 			.props
 			.get_or(Attribute::HighlightedColor, AttrValue::Color(foreground))
@@ -545,11 +561,7 @@ where
 			.get_or(Attribute::Custom(attr::INDENT), AttrValue::Length(DEFAULT_INDENT))
 			.unwrap_length();
 
-		let block = tui_realm_stdlib::utils::get_block(borders, Some(&title), focus, inactive_style);
-
-		// let block_inner_area = block.inner(area);
-
-		let style = Style::default().fg(foreground).bg(background);
+		let block = tui_realm_stdlib::utils::get_block(borders, Some(&title), focus, Some(inactive_style));
 
 		let mut widget = TreeWidget::new(&self.tree)
 			.block(block)

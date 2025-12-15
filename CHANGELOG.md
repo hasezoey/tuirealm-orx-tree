@@ -1,5 +1,9 @@
 # Changelog
 
+## next
+
+- Add a setting to control `inactive` border style, like `tui-realm-stdlib`
+
 ## 0.2.0
 
 - Add `widget::Indicator` to draw a single indicator

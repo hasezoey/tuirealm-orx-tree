@@ -10,10 +10,7 @@ use tuirealm::{
 		buffer::Buffer,
 		layout::Rect,
 		text::Line,
-		widgets::{
-			Clear,
-			Widget,
-		},
+		widgets::Widget,
 	},
 };
 
@@ -60,7 +57,7 @@ pub trait NodeValue {
 			// indent leaf nodes by what is taken up on the parent by the indicators, otherwise children and the parent would have the same visible indent
 			let leaf_indent = CHILD_INDICATOR_LENGTH;
 			let indent_area = calc_area_for_value(&mut offset, &mut area, usize::from(leaf_indent));
-			Clear.render(indent_area, buf);
+			buf.set_style(indent_area, style);
 		} else {
 			OrIndicators::default().render(&mut offset, &mut area, buf, is_opened());
 		}

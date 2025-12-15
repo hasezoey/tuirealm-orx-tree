@@ -52,10 +52,6 @@ use tuirealm::ratatui::layout::{
 	Layout,
 	Rect,
 };
-use tuirealm::ratatui::widgets::{
-	Clear,
-	Widget,
-};
 use tuirealm::terminal::{
 	CrosstermTerminalAdapter,
 	TerminalBridge,
@@ -159,7 +155,6 @@ impl NodeValue for FSTreeData {
 			// indent leaf nodes by what is taken up on the parent by the indicators, otherwise children and the parent would have the same visible indent
 			let leaf_indent = CHILD_INDICATOR_LENGTH;
 			let indent_area = calc_area_for_value(&mut offset, &mut area, usize::from(leaf_indent));
-			Clear.render(indent_area, buf);
 			buf.set_style(indent_area, style);
 		} else if !self.is_loading {
 			// directory that is not loading

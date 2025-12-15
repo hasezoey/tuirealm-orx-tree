@@ -13,7 +13,6 @@ use tuirealm::{
 		layout::Rect,
 		widgets::{
 			Block,
-			Clear,
 			StatefulWidget,
 			Widget,
 		},
@@ -275,9 +274,6 @@ where
 
 			let clear_area = calc_area_for_value(&mut display_offset_horiz, &mut line_area, indent);
 
-			// render the indent
-			Clear.render(clear_area, buf);
-
 			let indent_style = if let Some(indent_style) = self.indent_style {
 				indent_style
 			} else {
@@ -397,9 +393,6 @@ impl Indicator {
 		if draw_area.is_empty() {
 			return;
 		}
-
-		// clear the area in case allocated length is higher than the symbol length
-		Clear.render(draw_area, buf);
 
 		// Only draw the symbol in full and only at the beginning.
 		// This limitation is because we dont count grapheme length

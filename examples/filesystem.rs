@@ -94,7 +94,7 @@ struct FSTreeData {
 	/// The actual path of the node.
 	path:       PathBuf,
 	/// Store whether that path is a dir to show indicators & use for prefetching
-	is_dir:     bool,
+	is_dir:     IsDir,
 	/// Indicator if the we already send a request to fetch this directory
 	is_loading: bool,
 	/// The `path.file_name`'s string representation.
@@ -105,7 +105,7 @@ struct FSTreeData {
 }
 
 impl FSTreeData {
-	pub fn new(path: PathBuf, is_dir: bool) -> Self {
+	pub fn new(path: PathBuf, is_dir: IsDir) -> Self {
 		assert!(path.is_absolute());
 		let cell = OnceCell::new();
 		// Due to our expectation of the path not ending in `..`, we can assume
@@ -149,7 +149,7 @@ impl NodeValue for FSTreeData {
 		_is_leaf: bool,
 		is_opened: impl FnOnce() -> bool,
 	) {
-		if !self.is_dir {
+		if !self.is_dir.is_dir() {
 			// not a directory
 
 			// indent leaf nodes by what is taken up on the parent by the indicators, otherwise children and the parent would have the same visible indent
@@ -226,7 +226,7 @@ impl FileSystemTree {
 	fn handle_left_key(&mut self) -> Option<Msg> {
 		let selected_node = self.component.get_current_selected_node()?;
 
-		if !selected_node.data().is_dir || !self.component.get_state().is_opened(selected_node.idx()) {
+		if !selected_node.data().is_dir.is_dir() || !self.component.get_state().is_opened(selected_node.idx()) {
 			// When the selected node is a file or a closed directory, move focus to upper directory
 			self.perform(Cmd::Custom(tuirealm_orx_tree::component::cmd::SELECT_PARENT));
 		} else {
@@ -246,8 +246,8 @@ impl FileSystemTree {
 	fn handle_right_key(&mut self) -> Option<Msg> {
 		let selected_node = self.component.get_current_selected_node()?;
 
-		if selected_node.data().is_dir {
-			if selected_node.num_children() > 0 {
+		if selected_node.data().is_dir.is_dir() {
+			if selected_node.num_children() > 0 || selected_node.data().is_dir == IsDir::YesLoadedEmpty {
 				// Current node has children loaded, just open it.
 
 				// "Direction::Right" opens the current node
@@ -751,8 +751,8 @@ pub fn fs_dir_tree(path: &Path, depth: usize) -> RecVec {
 fn fs_dir_tree_inner(path: &Path, depth: usize, is_dir: Option<bool>) -> RecVec {
 	let is_dir = is_dir.unwrap_or_else(|| return path.is_dir());
 	let mut node = RecVec {
-		path: path.to_path_buf(),
-		is_dir,
+		path:     path.to_path_buf(),
+		is_dir:   if is_dir { IsDir::YesNotLoaded } else { IsDir::No },
 		children: Vec::new(),
 	};
 
@@ -774,6 +774,12 @@ fn fs_dir_tree_inner(path: &Path, depth: usize, is_dir: Option<bool>) -> RecVec 
 
 		// order directories before other, then byte compare (which is practically only works for ASCII)
 		paths.sort_by(|a, b| return a.1.1.cmp(&b.1.1).then(a.0.cmp(&b.0)));
+
+		node.is_dir = if paths.is_empty() {
+			IsDir::YesLoadedEmpty
+		} else {
+			IsDir::YesLoaded
+		};
 
 		for (_sort_str, (path, is_dir)) in paths {
 			node.children.push(fs_dir_tree_inner(&path, depth - 1, Some(is_dir)));
@@ -799,13 +805,12 @@ fn recvec_to_node_rec(
 	parent_node: Option<NodeIdx<FSTreeData>>,
 	tree: &mut Tree<FSTreeData>,
 ) -> NodeIdx<FSTreeData> {
-	let is_dir = vec.path.is_dir();
 	let nodeidx = if let Some(idx) = parent_node {
 		tree.get_node_mut(idx)
 			.unwrap()
-			.push_child(FSTreeData::new(vec.path, is_dir))
+			.push_child(FSTreeData::new(vec.path, vec.is_dir))
 	} else {
-		tree.push_root(FSTreeData::new(vec.path, is_dir))
+		tree.push_root(FSTreeData::new(vec.path, vec.is_dir))
 	};
 
 	for val in vec.children {
@@ -954,13 +959,33 @@ impl PartialEq for LIReloadData {
 	}
 }
 
+/// Determine if the value is meant to represent a directory and it content state.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum IsDir {
+	/// It is not a directory
+	No,
+	/// It is a directory, but it is unknown if it contains anything.
+	YesNotLoaded,
+	/// It is a directory, and it is known to not be empty.
+	YesLoaded,
+	/// It is a directory, and is known to be empty.
+	YesLoadedEmpty,
+}
+
+impl IsDir {
+	#[inline]
+	pub fn is_dir(self) -> bool {
+		return !matches!(self, IsDir::No);
+	}
+}
+
 /// Recursive structure which may contain more of itself.
 ///
 /// This exists to send a (sub)tree across messages, without having the tree itself require [`Default`], [`Clone`] or [`Eq`].
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RecVec {
 	pub path:     PathBuf,
-	pub is_dir:   bool,
+	pub is_dir:   IsDir,
 	pub children: Vec<RecVec>,
 }
 
@@ -994,7 +1019,7 @@ impl Default for LINodeReady {
 	fn default() -> Self {
 		let bogus_recvec = RecVec {
 			path:     PathBuf::new(),
-			is_dir:   false,
+			is_dir:   IsDir::No,
 			children: Vec::new(),
 		};
 		return Self {
@@ -1025,7 +1050,7 @@ impl Default for LINodeReadySub {
 	fn default() -> Self {
 		let bogus_recvec = RecVec {
 			path:     PathBuf::new(),
-			is_dir:   false,
+			is_dir:   IsDir::No,
 			children: Vec::new(),
 		};
 		return Self {

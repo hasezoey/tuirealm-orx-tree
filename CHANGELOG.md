@@ -1,6 +1,6 @@
 # Changelog
 
-## next
+## 0.3.0
 
 - Add a setting to control `inactive` border style, like `tui-realm-stdlib`
 - Dont draw any `Clear`s as this completely resets everything, including styles

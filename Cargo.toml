@@ -22,7 +22,7 @@ tuirealm = { version = "3.2.0", default-features = false, features = [
 	"async-ports",
 ] }
 pretty_assertions = "1.4"
-tokio = { version = "1.47", features = [
+tokio = { version = "1.50", features = [
 	"sync",
 	"macros",
 	"rt",

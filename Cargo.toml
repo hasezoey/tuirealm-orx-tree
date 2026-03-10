@@ -10,7 +10,7 @@ description = "Tree Component for TUIRealm with orx-tree"
 readme = "README.md"
 
 [dependencies]
-tuirealm = { version = "3.2.0", default-features = false, features = [
+tuirealm = { version = "3.3.0", default-features = false, features = [
 	"derive",
 ] }
 tui-realm-stdlib = "~3.0"

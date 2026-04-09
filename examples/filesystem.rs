@@ -21,30 +21,43 @@ use tokio::sync::mpsc::{
 	UnboundedReceiver,
 	UnboundedSender,
 };
-use tui_realm_stdlib::{
+use tui_realm_stdlib::components::{
 	Label,
 	Spinner,
 };
+use tuirealm::application::{
+	Application,
+	PollStrategy,
+};
+use tuirealm::command::CmdResult;
 use tuirealm::command::{
 	Cmd,
 	Direction,
 	Position,
 };
+use tuirealm::component::{
+	AppComponent,
+	Component,
+};
 use tuirealm::event::{
+	Event,
 	Key,
 	KeyEvent,
 	KeyModifiers,
 };
 use tuirealm::listener::{
-	ListenerResult,
+	EventListenerCfg,
 	PollAsync,
+	PortResult,
 };
 use tuirealm::props::{
-	Alignment,
 	BorderType,
 	Borders,
 	Color,
+	HorizontalAlignment,
 	Style,
+	TextModifiers,
+	Title,
 };
 use tuirealm::ratatui::buffer::Buffer;
 use tuirealm::ratatui::layout::{
@@ -52,24 +65,15 @@ use tuirealm::ratatui::layout::{
 	Layout,
 	Rect,
 };
-use tuirealm::terminal::{
-	CrosstermTerminalAdapter,
-	TerminalBridge,
-};
-use tuirealm::{
-	Application,
-	Component,
-	Event,
-	EventListenerCfg,
-	PollStrategy,
+use tuirealm::subscription::{
+	EventClause,
 	Sub,
 	SubClause,
-	SubEventClause,
-	Update,
 };
-use tuirealm::{
-	MockComponent,
-	command::CmdResult,
+use tuirealm::terminal::{
+	CrosstermTerminalAdapter,
+	TerminalAdapter,
+	TerminalResult,
 };
 use tuirealm_orx_tree::component::cmd;
 use tuirealm_orx_tree::types::NodeIdx;
@@ -170,7 +174,7 @@ impl NodeValue for FSTreeData {
 	}
 }
 
-#[derive(Debug, MockComponent)]
+#[derive(Debug, Component)]
 struct FileSystemTree {
 	component: TreeView<FSTreeData>,
 
@@ -192,8 +196,8 @@ impl FileSystemTree {
 			// .indent_style(Style::default())
 			.scroll_step_horizontal(NonZeroUsize::new(2).unwrap())
 			.empty_tree_text("Loading...")
-			.title(" Filesystem ", Alignment::Left)
-			.highlight_color(Color::Yellow)
+			.title(Title::from(" Filesystem ").alignment(HorizontalAlignment::Left))
+			.highlight_style(Style::new().fg(Color::Yellow).add_modifier(TextModifiers::REVERSED))
 			// .highlight_symbol_style(Style::default())
 			// .highlight_symbol_draw_behavior(tuirealm_orx_tree::widget::HighlightDrawBehavior::Static)
 			.highlight_symbol(">");
@@ -455,11 +459,12 @@ impl FileSystemTree {
 	///
 	/// This will always replace the root of the tree.
 	#[expect(unsafe_code)]
-	fn handle_ready(&mut self, data: LINodeReady) -> Msg {
-		let vec = data.vec;
-		let initial_node = data.focus_node;
-
-		let initial_node = initial_node.or_else(|| return self.get_selected_path().map(Path::to_path_buf));
+	fn handle_ready(&mut self, data: &LINodeReady) -> Msg {
+		let vec = data.vec.clone();
+		let initial_node = data
+			.focus_node
+			.clone()
+			.or_else(|| return self.get_selected_path().map(Path::to_path_buf));
 
 		let (_, tree) = recvec_to_tree(vec);
 
@@ -467,13 +472,13 @@ impl FileSystemTree {
 		// SAFETY: everything is already invalidated and cleared.
 		*unsafe { self.component.get_tree_mut() } = tree;
 
-		if let Some(initial_node) = initial_node {
-			let idx = self.get_idx_of_path(&initial_node);
+		if let Some(initial_node) = &initial_node {
+			let idx = self.get_idx_of_path(initial_node);
 			if let Some(idx) = idx {
 				self.select_and_open_node(idx);
 			} else {
 				// requested node is not within the tree, lets try to find the next nearest parent
-				self.select_nearest_parent_node(&initial_node);
+				self.select_nearest_parent_node(initial_node);
 			}
 		} else {
 			// always select the root node
@@ -489,8 +494,8 @@ impl FileSystemTree {
 	///
 	/// This will replace the root if the given data is starting at the root path.
 	#[expect(unsafe_code)]
-	fn handle_ready_sub(&mut self, data: LINodeReadySub) -> Option<Msg> {
-		let vec = data.vec;
+	fn handle_ready_sub(&mut self, data: &LINodeReadySub) -> Option<Msg> {
+		let vec = data.vec.clone();
 
 		// let tree_mut = self.component.tree_mut().root_mut();
 		let Some(root_path) = self.get_root_path() else {
@@ -545,13 +550,13 @@ impl FileSystemTree {
 			// TODO: call tree changed?
 		}
 
-		if let Some(focus_node) = data.focus_node {
-			let idx = self.get_idx_of_path(&focus_node);
+		if let Some(focus_node) = &data.focus_node {
+			let idx = self.get_idx_of_path(focus_node);
 			if let Some(idx) = idx {
 				self.select_and_open_node(idx);
 			} else {
 				// requested node is not within the tree, lets try to find the next nearest parent
-				self.select_nearest_parent_node(&focus_node);
+				self.select_nearest_parent_node(focus_node);
 			}
 		}
 
@@ -560,7 +565,7 @@ impl FileSystemTree {
 
 	/// Handle all custom messages.
 	#[expect(unreachable_patterns)]
-	fn handle_user_events(&mut self, ev: UserEvents) -> Option<Msg> {
+	fn handle_user_events(&mut self, ev: &UserEvents) -> Option<Msg> {
 		// handle subscriptions
 		return match ev {
 			UserEvents::TreeNodeReady(data) => Some(self.handle_ready(data)),
@@ -570,8 +575,8 @@ impl FileSystemTree {
 	}
 }
 
-impl Component<Msg, UserEvents> for FileSystemTree {
-	fn on(&mut self, ev: tuirealm::Event<UserEvents>) -> Option<Msg> {
+impl AppComponent<Msg, UserEvents> for FileSystemTree {
+	fn on(&mut self, ev: &Event<UserEvents>) -> Option<Msg> {
 		if let Event::User(ev) = ev {
 			return self.handle_user_events(ev);
 		}
@@ -583,14 +588,14 @@ impl Component<Msg, UserEvents> for FileSystemTree {
 				modifiers: KeyModifiers::NONE,
 			}) => match self.handle_left_key() {
 				Some(msg) => return Some(msg),
-				None => CmdResult::None,
+				None => CmdResult::NoChange,
 			},
 			Event::Keyboard(KeyEvent {
 				code: Key::Right,
 				modifiers: KeyModifiers::NONE,
 			}) => match self.handle_right_key() {
 				Some(msg) => return Some(msg),
-				None => CmdResult::None,
+				None => CmdResult::NoChange,
 			},
 			Event::Keyboard(KeyEvent {
 				code: Key::Down,
@@ -655,7 +660,7 @@ impl Component<Msg, UserEvents> for FileSystemTree {
 				}
 
 				// there is no special indicator or message; the download_tracker should force a draw once active
-				CmdResult::None
+				CmdResult::NoChange
 			},
 			Event::Keyboard(KeyEvent {
 				code: Key::Enter,
@@ -670,7 +675,7 @@ impl Component<Msg, UserEvents> for FileSystemTree {
 					return Some(Msg::ForceRedraw);
 				}
 
-				CmdResult::None
+				CmdResult::NoChange
 			},
 			Event::Keyboard(KeyEvent {
 				code: Key::Function(5),
@@ -697,10 +702,10 @@ impl Component<Msg, UserEvents> for FileSystemTree {
 				modifiers: KeyModifiers::NONE,
 			}) => return Some(Msg::Quit),
 
-			_ => CmdResult::None,
+			_ => CmdResult::NoChange,
 		};
 		match result {
-			CmdResult::None => return None,
+			CmdResult::NoChange => return None,
 			_ => return Some(Msg::ForceRedraw),
 		}
 	}
@@ -822,11 +827,11 @@ fn recvec_to_node_rec(
 fn fs_subs() -> Vec<Sub<Id, UserEvents>> {
 	return vec![
 		Sub::new(
-			SubEventClause::User(UserEvents::TreeNodeReady(LINodeReady::default())),
+			EventClause::User(UserEvents::TreeNodeReady(LINodeReady::default())),
 			SubClause::Always,
 		),
 		Sub::new(
-			SubEventClause::User(UserEvents::TreeNodeReadySub(LINodeReadySub::default())),
+			EventClause::User(UserEvents::TreeNodeReadySub(LINodeReadySub::default())),
 			SubClause::Always,
 		),
 	];
@@ -837,7 +842,7 @@ fn fs_subs() -> Vec<Sub<Id, UserEvents>> {
 type TxToMain = UnboundedSender<UserEvents>;
 
 /// Display basic navigation
-#[derive(MockComponent)]
+#[derive(Component)]
 struct MessageLabel {
 	component: Label,
 }
@@ -852,8 +857,8 @@ impl Default for MessageLabel {
 	}
 }
 
-impl Component<Msg, UserEvents> for MessageLabel {
-	fn on(&mut self, _ev: Event<UserEvents>) -> Option<Msg> {
+impl AppComponent<Msg, UserEvents> for MessageLabel {
+	fn on(&mut self, _ev: &Event<UserEvents>) -> Option<Msg> {
 		return None;
 	}
 }
@@ -893,7 +898,7 @@ impl LoadTracker {
 }
 
 /// Indicator that something is still loading
-#[derive(MockComponent)]
+#[derive(Component)]
 pub struct LoadIndicator {
 	component: Spinner,
 }
@@ -909,8 +914,8 @@ impl Default for LoadIndicator {
 	}
 }
 
-impl Component<Msg, UserEvents> for LoadIndicator {
-	fn on(&mut self, _: Event<UserEvents>) -> Option<Msg> {
+impl AppComponent<Msg, UserEvents> for LoadIndicator {
+	fn on(&mut self, _ev: &Event<UserEvents>) -> Option<Msg> {
 		return None;
 	}
 }
@@ -927,7 +932,7 @@ impl PortRxMain {
 #[tuirealm::async_trait]
 #[allow(clippy::implicit_return)] // for some reason clippy wants to add "return" before "async"
 impl PollAsync<UserEvents> for PortRxMain {
-	async fn poll(&mut self) -> ListenerResult<Option<Event<UserEvents>>> {
+	async fn poll(&mut self) -> PortResult<Option<Event<UserEvents>>> {
 		return match self.0.recv().await {
 			Some(ev) => Ok(Some(Event::User(ev))),
 			None => Ok(None),
@@ -1088,22 +1093,26 @@ struct Model {
 	pub app:      Application<Id, Msg, UserEvents>,
 	pub quit:     bool,
 	pub redraw:   bool,
-	pub terminal: TerminalBridge<CrosstermTerminalAdapter>,
+	pub terminal: CrosstermTerminalAdapter,
 
 	pub tracker: LoadTracker,
 }
 
 impl Model {
-	fn new(
-		app: Application<Id, Msg, UserEvents>,
-		adapter: TerminalBridge<CrosstermTerminalAdapter>,
-		tracker: LoadTracker,
-	) -> Self {
+	fn init_adapter() -> TerminalResult<CrosstermTerminalAdapter> {
+		let mut adapter = CrosstermTerminalAdapter::new()?;
+		adapter.enable_raw_mode()?;
+		adapter.enter_alternate_screen()?;
+
+		return Ok(adapter);
+	}
+
+	fn new(app: Application<Id, Msg, UserEvents>, tracker: LoadTracker) -> Self {
 		return Self {
 			app,
 			quit: false,
 			redraw: true,
-			terminal: adapter,
+			terminal: Self::init_adapter().expect("Crossterm to initialize"),
 			tracker,
 		};
 	}
@@ -1127,37 +1136,13 @@ impl Model {
 			.unwrap();
 	}
 
-	fn init_terminal(&mut self) {
-		let original_hook = std::panic::take_hook();
-		std::panic::set_hook(Box::new(move |panic| {
-			Self::hook_reset_terminal();
-			original_hook(panic);
-		}));
-		let _drop = self.terminal.enable_raw_mode();
-		let _drop = self.terminal.enter_alternate_screen();
-		// required as "enter_alternate_screen" always enabled mouse-capture
-		let _drop = self.terminal.disable_mouse_capture();
-		let _drop = self.terminal.clear_screen();
-	}
-
-	fn hook_reset_terminal() {
-		let mut terminal_clone = TerminalBridge::new_crossterm().expect("Could not initialize terminal");
-		let _drop = terminal_clone.disable_raw_mode();
-		let _drop = terminal_clone.leave_alternate_screen();
-	}
-}
-
-impl Update<Msg> for Model {
-	fn update(&mut self, msg: Option<Msg>) -> Option<Msg> {
-		let msg = msg?;
+	fn update(&mut self, msg: Msg) {
 		self.redraw = true;
 
 		match msg {
 			Msg::ForceRedraw => (),
 			Msg::Quit => self.quit = true,
 		};
-
-		return None;
 	}
 }
 
@@ -1190,9 +1175,7 @@ async fn actual_main() -> Result<(), Box<dyn std::error::Error>> {
 
 	app.active(&Id::Tree)?;
 
-	let mut model = Model::new(app, TerminalBridge::init_crossterm()?, load_tracker.clone());
-
-	model.init_terminal();
+	let mut model = Model::new(app, load_tracker.clone());
 
 	// trigger initial load of the tree
 	let cwd = std::env::current_dir()?;
@@ -1206,18 +1189,13 @@ async fn actual_main() -> Result<(), Box<dyn std::error::Error>> {
 		model.redraw = true;
 
 		for msg in messages {
-			let mut msg = Some(msg);
-			while msg.is_some() {
-				msg = model.update(msg);
-			}
+			model.update(msg);
 		}
 
 		if model.redraw {
 			model.view();
 		}
 	}
-
-	Model::hook_reset_terminal();
 
 	return Ok(());
 }

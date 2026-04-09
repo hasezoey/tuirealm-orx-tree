@@ -1,4 +1,4 @@
-use tuirealm::{
+use tuirealm::props::{
 	AttrValue,
 	Attribute,
 	Props,
@@ -13,6 +13,9 @@ pub trait PropsExt {
 
 impl PropsExt for Props {
 	fn should_display(&self) -> bool {
-		return self.get_or(Attribute::Display, AttrValue::Flag(true)) == AttrValue::Flag(true);
+		return self
+			.get(Attribute::Display)
+			.and_then(AttrValue::as_flag)
+			.unwrap_or(true);
 	}
 }

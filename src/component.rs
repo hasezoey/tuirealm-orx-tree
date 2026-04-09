@@ -4,25 +4,32 @@ use std::num::NonZeroUsize;
 
 use orx_tree::NodeRef;
 use tuirealm::{
-	AttrValue,
-	Attribute,
-	MockComponent,
-	Props,
-	State,
-	StateValue,
 	command::{
 		Cmd,
 		CmdResult,
 		Direction,
 		Position,
 	},
+	component::Component,
 	props::{
-		Alignment,
+		AttrValue,
+		AttrValueRef,
+		Attribute,
 		Borders,
 		Color,
+		Props,
+		QueryResult,
 		Style,
+		Title,
 	},
-	ratatui::layout::Rect,
+	ratatui::{
+		Frame,
+		layout::Rect,
+	},
+	state::{
+		State,
+		StateValue,
+	},
 };
 
 pub use crate::state::{
@@ -170,16 +177,16 @@ where
 	}
 
 	/// Set a title for the tree in the border.
-	pub fn title<S: Into<String>>(mut self, title: S, align: Alignment) -> Self {
-		self.attr(Attribute::Title, AttrValue::Title((title.into(), align)));
-
+	pub fn title<T: Into<Title>>(mut self, title: T) -> Self {
+		self.attr(Attribute::Title, AttrValue::Title(title.into()));
 		return self;
 	}
 
-	/// Set the current curser selection color.
-	pub fn highlight_color(mut self, color: Color) -> Self {
-		self.attr(Attribute::HighlightedColor, AttrValue::Color(color));
-
+	/// Set a custom highlight style that is patched ontop of the normal style.
+	///
+	/// By default the highlight style is just `Style::new().add_modifier(Modifier::REVERSED)`.
+	pub fn highlight_style(mut self, s: Style) -> Self {
+		self.attr(Attribute::HighlightStyle, AttrValue::Style(s));
 		return self;
 	}
 
@@ -277,7 +284,7 @@ where
 	///
 	/// Note that style set in [`broder`](Self::border) will be overwritten when unfocused.
 	pub fn inactive_style(mut self, style: Style) -> Self {
-		self.attr(Attribute::FocusStyle, AttrValue::Style(style));
+		self.attr(Attribute::UnfocusedBorderStyle, AttrValue::Style(style));
 
 		return self;
 	}
@@ -484,93 +491,89 @@ where
 	}
 }
 
-impl<V> MockComponent for TreeView<V>
+impl<V> Component for TreeView<V>
 where
 	V: NodeValue,
 {
-	fn view(&mut self, frame: &mut tuirealm::Frame<'_>, area: Rect) {
+	fn view(&mut self, frame: &mut Frame<'_>, area: Rect) {
 		if !self.props.should_display() {
 			return;
 		}
 
 		let foreground = self
 			.props
-			.get_or(Attribute::Foreground, AttrValue::Color(Color::Reset))
-			.unwrap_color();
+			.get(Attribute::Foreground)
+			.and_then(AttrValue::as_color)
+			.unwrap_or(Color::Reset);
 		let background = self
 			.props
-			.get_or(Attribute::Background, AttrValue::Color(Color::Reset))
-			.unwrap_color();
+			.get(Attribute::Background)
+			.and_then(AttrValue::as_color)
+			.unwrap_or(Color::Reset);
 
 		let style = Style::default().fg(foreground).bg(background);
 
-		let title = tui_realm_stdlib::utils::get_title_or_center(&self.props);
+		let title = self.props.get(Attribute::Title).and_then(AttrValue::as_title);
 		let empty_tree_text = self
 			.props
-			.get_ref(Attribute::Custom(attr::EMPTY_TREE))
+			.get(Attribute::Custom(attr::EMPTY_TREE))
 			.and_then(AttrValue::as_string);
 
 		let borders = self
 			.props
-			.get_or(Attribute::Borders, AttrValue::Borders(Borders::default()))
-			.unwrap_borders();
+			.get(Attribute::Borders)
+			.and_then(AttrValue::as_borders)
+			.unwrap_or_default();
 		let focus = self
 			.props
-			.get_or(Attribute::Focus, AttrValue::Flag(false))
-			.unwrap_flag();
+			.get(Attribute::Focus)
+			.and_then(AttrValue::as_flag)
+			.unwrap_or_default();
 		let inactive_style = self
 			.props
-			.get(Attribute::FocusStyle)
-			.map_or(style, AttrValue::unwrap_style);
-		let hg_color = self
-			.props
-			.get_or(Attribute::HighlightedColor, AttrValue::Color(foreground))
-			.unwrap_color();
-		let hg_str = self
-			.props
-			.get_ref(Attribute::HighlightedStr)
-			.and_then(AttrValue::as_string);
+			.get(Attribute::UnfocusedBorderStyle)
+			.and_then(AttrValue::as_style)
+			.unwrap_or(style);
+		let hg_style = self.props.get(Attribute::HighlightStyle).and_then(AttrValue::as_style);
+		// TODO: change to line
+		let hg_str = self.props.get(Attribute::HighlightedStr).and_then(AttrValue::as_string);
 		let hg_str_style = self
 			.props
-			.get_ref(Attribute::Custom(attr::HG_SYM_STYLE))
+			.get(Attribute::Custom(attr::HG_SYM_STYLE))
 			.and_then(AttrValue::as_style);
 		let hg_width = self
 			.props
-			.get_ref(Attribute::Custom(attr::HG_DRAW_WIDTH))
+			.get(Attribute::Custom(attr::HG_DRAW_WIDTH))
 			.and_then(AttrValue::as_size)
 			.unwrap_or(2);
 		let hg_behavior = self
 			.props
-			.get_ref(Attribute::Custom(attr::HG_DRAW_BEHAVIOR))
+			.get(Attribute::Custom(attr::HG_DRAW_BEHAVIOR))
 			.and_then(AttrValue::as_size)
 			.map_or(HighlightDrawBehavior::default(), HighlightDrawBehavior::from_u16);
 		let indent_style = self
 			.props
-			.get_ref(Attribute::Custom(attr::INDENT_STYLE))
+			.get(Attribute::Custom(attr::INDENT_STYLE))
 			.and_then(AttrValue::as_style);
-		// dont have the highlight be too disrupting while not focused
-		let hg_style = if focus {
-			// TODO: consider making this more configurable
-			Style::default().bg(hg_color).fg(Color::Black)
-		} else {
-			Style::default().fg(hg_color)
-		};
 
 		let indent = self
 			.props
-			.get_or(Attribute::Custom(attr::INDENT), AttrValue::Length(DEFAULT_INDENT))
-			.unwrap_length();
+			.get(Attribute::Custom(attr::INDENT))
+			.and_then(AttrValue::as_length)
+			.unwrap_or(DEFAULT_INDENT);
 
-		let block = tui_realm_stdlib::utils::get_block(borders, Some(&title), focus, Some(inactive_style));
+		let block = tui_realm_stdlib::utils::get_block(borders, title, focus, Some(inactive_style));
 
 		let mut widget = TreeWidget::new(&self.tree)
 			.block(block)
 			.style(style)
-			.hg_style(hg_style)
 			.hg_draw_behavior(hg_behavior)
 			.hg_width(hg_width)
 			.indent(indent);
 
+		if let Some(hg_style) = hg_style {
+			widget = widget.hg_style(hg_style);
+		}
 		if let Some(indent_style) = indent_style {
 			widget = widget.indent_style(indent_style);
 		}
@@ -587,19 +590,19 @@ where
 		frame.render_stateful_widget(widget, area, &mut self.state);
 	}
 
-	fn query(&self, attr: tuirealm::Attribute) -> Option<tuirealm::AttrValue> {
+	fn query(&self, attr: Attribute) -> Option<QueryResult<'_>> {
 		return match attr {
 			Attribute::Custom(attr::HORIZ_SCROLL_STEP) => {
-				return Some(AttrValue::Length(self.state.get_horizontal_scroll_step().get()));
+				return Some(AttrValueRef::Length(self.state.get_horizontal_scroll_step().get()).into());
 			},
 			Attribute::Custom(attr::VERT_SCROLL_STEP) => {
-				return Some(AttrValue::Length(self.state.get_vertical_scroll_step().get()));
+				return Some(AttrValueRef::Length(self.state.get_vertical_scroll_step().get()).into());
 			},
-			_ => self.props.get(attr),
+			_ => self.props.get_for_query(attr),
 		};
 	}
 
-	fn attr(&mut self, attr: tuirealm::Attribute, value: tuirealm::AttrValue) {
+	fn attr(&mut self, attr: Attribute, value: AttrValue) {
 		match attr {
 			Attribute::Custom(attr::HORIZ_SCROLL_STEP) => {
 				let val = NonZeroUsize::new(value.unwrap_length()).unwrap();
@@ -613,13 +616,13 @@ where
 		};
 	}
 
-	fn state(&self) -> tuirealm::State {
+	fn state(&self) -> State {
 		// TODO: state values are not accurate or represent much other than "has something been selected"
 		// maybe we can update it if "Any" becomes stable <https://github.com/veeso/tui-realm/pull/120>
 
 		// get the actual node value to see if it is still valid within the tree
 		if let Some(_node) = self.get_selected_node() {
-			return State::One(StateValue::Bool(true));
+			return State::Single(StateValue::Bool(true));
 		} else {
 			return State::None;
 		}
@@ -703,12 +706,12 @@ where
 					return CmdResult::Changed(self.state());
 				}
 
-				return CmdResult::None;
+				return CmdResult::NoChange;
 			},
 			// Cmd::Cancel => (),
 			// Cmd::Toggle => (),
 			// Cmd::Change => (),
-			_ => return CmdResult::None,
+			_ => return CmdResult::NoChange,
 			// explicitly unimplemented
 			// Cmd::Submit => (),
 			// Cmd::Delete => (),

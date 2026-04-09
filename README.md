@@ -48,7 +48,7 @@ impl OurComponent {
     fn new() -> Self {
         Self {
             component: TreeView::default()
-                .background(Color::Reset)
+                .background(Color::Black)
                 .foreground(Color::White)
                 .border(
                     Borders::default()

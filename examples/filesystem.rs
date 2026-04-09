@@ -164,7 +164,7 @@ impl NodeValue for FSTreeData {
 		} else if !self.is_loading {
 			// directory that is not loading
 			OrIndicators::default()
-				.with_style(style.fg(Color::Reset))
+				.with_style(style)
 				.render(&mut offset, &mut area, buf, is_opened());
 		} else {
 			// directory that is loading
@@ -186,7 +186,7 @@ struct FileSystemTree {
 impl FileSystemTree {
 	fn new_tree() -> TreeView<FSTreeData> {
 		return TreeView::default()
-			.background(Color::Reset)
+			// .background(Color::Black)
 			.foreground(Color::White)
 			.border(
 				Borders::default()
@@ -909,7 +909,7 @@ impl Default for LoadIndicator {
 		return LoadIndicator {
 			component: Spinner::default()
 				.foreground(Color::White)
-				.background(Color::Reset)
+				// .background(Color::Black)
 				.sequence("⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"),
 		};
 	}

@@ -3,8 +3,9 @@
 //! Example usage:
 //!
 //! ```no_run
-//! # use tuirealm::{MockComponent, Component, NoUserEvent, Event};
+//! # use tuirealm::component::{Component, AppComponent};
 //! # use tuirealm::event::{
+//! #   NoUserEvent, Event,
 //! # 	Key,
 //! # 	KeyEvent,
 //! # 	KeyModifiers,
@@ -14,7 +15,7 @@
 //! #   CmdResult,
 //! # 	Direction,
 //! # };
-//! # use tuirealm::props::{Alignment, Color, BorderType, Borders};
+//! # use tuirealm::props::{HorizontalAlignment, Color, BorderType, Borders, Title, TextModifiers, Style};
 //! # use std::num::NonZeroUsize;
 //! #
 //! # #[derive(Debug, Clone, PartialEq)]
@@ -23,7 +24,7 @@
 //! # }
 //! type TreeView = tuirealm_orx_tree::component::TreeView<String>;
 //!
-//! #[derive(Debug, MockComponent)]
+//! #[derive(Debug, Component)]
 //! struct OurComponent {
 //! 	component: TreeView
 //! }
@@ -42,15 +43,15 @@
 //! 				.indent_size(2)
 //! 				.scroll_step_horizontal(NonZeroUsize::new(2).unwrap())
 //! 				.empty_tree_text("Loading...")
-//! 				.title(" Library ", Alignment::Left)
-//! 				.highlight_color(Color::Yellow)
+//! 				.title(Title::from(" Library ").alignment(HorizontalAlignment::Left))
+//! 				.highlight_style(Style::new().fg(Color::Yellow).add_modifier(TextModifiers::REVERSED))
 //! 				.highlight_symbol(">"),
 //! 		}
 //! 	}
 //! }
 //!
-//! impl Component<Msg, NoUserEvent> for OurComponent {
-//!		fn on(&mut self, ev: Event<NoUserEvent>) -> Option<Msg> {
+//! impl AppComponent<Msg, NoUserEvent> for OurComponent {
+//!		fn on(&mut self, ev: &Event<NoUserEvent>) -> Option<Msg> {
 //! 		let result = match ev {
 //! 			// selection
 //!				Event::Keyboard(KeyEvent {
@@ -72,11 +73,11 @@
 //!
 //! 			// etc...
 //!
-//! 			_ => CmdResult::None,
+//! 			_ => CmdResult::NoChange,
 //! 		};
 //!
 //! 		match result {
-//! 			CmdResult::None => None,
+//! 			CmdResult::NoChange => None,
 //! 			_ => Some(Msg::ForceRedraw)
 //! 		}
 //! 	}

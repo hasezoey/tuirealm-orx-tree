@@ -65,6 +65,7 @@ use tuirealm::ratatui::layout::{
 	Layout,
 	Rect,
 };
+use tuirealm::ratatui::text::Line;
 use tuirealm::subscription::{
 	EventClause,
 	Sub,
@@ -167,7 +168,7 @@ impl NodeValue for FSTreeData {
 				.render(&mut offset, &mut area, buf, is_opened());
 		} else {
 			// directory that is loading
-			Indicator::render(LOADING_SYMBOL, 2, &mut offset, &mut area, buf, Some(style));
+			Indicator::render(&Line::from(LOADING_SYMBOL), 2, &mut offset, &mut area, buf, Some(style));
 		}
 
 		self.render(buf, area, offset, style);

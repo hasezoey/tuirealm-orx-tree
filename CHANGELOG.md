@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.0
+
+- Update to tuirealm 4.0
+  - `TreeView::title` has been changed to accept `Title` instead of multiple arguments
+- Change `highlight_symbol` to be `Line`
+  - Remove `highlight_symbol_style` as that is now handled on `Line`
+
 ## 0.3.0
 
 - Add a setting to control `inactive` border style, like `tui-realm-stdlib`

@@ -3,7 +3,10 @@
 use std::num::NonZeroUsize;
 
 use orx_tree::NodeRef;
-use tui_realm_stdlib::prop_ext::CommonProps;
+use tui_realm_stdlib::prop_ext::{
+	CommonHighlight,
+	CommonProps,
+};
 use tuirealm::{
 	command::{
 		Cmd,
@@ -18,6 +21,7 @@ use tuirealm::{
 		Attribute,
 		Borders,
 		Color,
+		LineStatic,
 		Props,
 		QueryResult,
 		Style,
@@ -63,8 +67,6 @@ pub mod attr {
 	pub const HORIZ_SCROLL_STEP: &str = "horiz-scroll-step";
 	/// Attribute to control the vertical scroll stepping
 	pub const VERT_SCROLL_STEP: &str = "vert-scroll-step";
-	/// Attribute for a custom style for the highlight symbol
-	pub const HG_SYM_STYLE: &str = "hg-symbol-style";
 	/// Attribute to control the width of a highlight symbol
 	pub const HG_DRAW_WIDTH: &str = "hg-draw-width";
 	/// Attribute to control the draw behavior of the highlight symbol
@@ -87,10 +89,11 @@ pub mod cmd {
 #[derive(Debug, Clone)]
 #[must_use]
 pub struct TreeView<V: NodeValue> {
-	props:  Props,
-	common: CommonProps,
-	tree:   Tree<V>,
-	state:  TreeViewState<V>,
+	props:     Props,
+	common:    CommonProps,
+	common_hg: CommonHighlight,
+	tree:      Tree<V>,
+	state:     TreeViewState<V>,
 }
 
 impl<V> Default for TreeView<V>
@@ -99,10 +102,11 @@ where
 {
 	fn default() -> Self {
 		return Self {
-			props:  Props::default(),
-			common: CommonProps::default(),
-			tree:   Tree::default(),
-			state:  TreeViewState::default(),
+			props:     Props::default(),
+			common:    CommonProps::default(),
+			common_hg: CommonHighlight::default(),
+			tree:      Tree::default(),
+			state:     TreeViewState::default(),
 		};
 	}
 }
@@ -155,7 +159,7 @@ where
 	/// Set the main text modifiers. This may get overwritten by individual text styles.
 	pub fn modifiers(mut self, m: TextModifiers) -> Self {
 		self.attr(Attribute::TextProps, AttrValue::TextModifiers(m));
-		return self
+		return self;
 	}
 
 	/// Set the main style. This may get overwritten by individual text styles.
@@ -163,7 +167,7 @@ where
 	/// This option will overwrite any previous [`foreground`](Self::foreground), [`background`](Self::background) and [`modifiers`](Self::modifiers)!
 	pub fn style(mut self, style: Style) -> Self {
 		self.attr(Attribute::Style, AttrValue::Style(style));
-		return self
+		return self;
 	}
 
 	/// Set a custom style to use for the block if the component is not focused.
@@ -215,23 +219,13 @@ where
 	/// By default the highlight style is just `Style::new().add_modifier(Modifier::REVERSED)`.
 	pub fn highlight_style(mut self, s: Style) -> Self {
 		self.attr(Attribute::HighlightStyle, AttrValue::Style(s));
+
 		return self;
 	}
 
 	/// Set the current curser selection symbol.
-	pub fn highlight_symbol<S: Into<String>>(mut self, val: S) -> Self {
-		self.attr(Attribute::HighlightedStr, AttrValue::String(val.into()));
-
-		return self;
-	}
-
-	/// Set a custom style for the Highlight symbol area.
-	///
-	/// By default the common style is used for that area.
-	///
-	/// If the Area should *not* be styled, input [`Style::default`] here.
-	pub fn highlight_symbol_style(mut self, style: Style) -> Self {
-		self.attr(Attribute::Custom(attr::HG_SYM_STYLE), AttrValue::Style(style));
+	pub fn highlight_symbol<S: Into<LineStatic>>(mut self, s: S) -> Self {
+		self.attr(Attribute::HighlightedStr, AttrValue::TextLine(s.into()));
 
 		return self;
 	}
@@ -522,13 +516,6 @@ where
 			.get(Attribute::Custom(attr::EMPTY_TREE))
 			.and_then(AttrValue::as_string);
 
-		let hg_style = self.props.get(Attribute::HighlightStyle).and_then(AttrValue::as_style);
-		// TODO: change to line
-		let hg_str = self.props.get(Attribute::HighlightedStr).and_then(AttrValue::as_string);
-		let hg_str_style = self
-			.props
-			.get(Attribute::Custom(attr::HG_SYM_STYLE))
-			.and_then(AttrValue::as_style);
 		let hg_width = self
 			.props
 			.get(Attribute::Custom(attr::HG_DRAW_WIDTH))
@@ -556,20 +543,17 @@ where
 			.hg_width(hg_width)
 			.indent(indent);
 
+		if self.common.is_active() {
+			widget = widget.hg_style(self.common_hg.get_style(self.common.style));
+		}
+		if let Some(symbol) = self.common_hg.get_symbol() {
+			widget = widget.hg_str(symbol);
+		}
 		if let Some(block) = self.common.get_block() {
 			widget = widget.block(block);
 		}
-		if let Some(hg_style) = hg_style {
-			widget = widget.hg_style(hg_style);
-		}
 		if let Some(indent_style) = indent_style {
 			widget = widget.indent_style(indent_style);
-		}
-		if let Some(hg_str) = hg_str {
-			widget = widget.hg_str(hg_str);
-		}
-		if let Some(hg_str_style) = hg_str_style {
-			widget = widget.hg_str_style(hg_str_style);
 		}
 		if let Some(empty_tree_text) = empty_tree_text {
 			widget = widget.empty_tree_text(empty_tree_text);
@@ -579,7 +563,11 @@ where
 	}
 
 	fn query(&self, attr: Attribute) -> Option<QueryResult<'_>> {
-		if let Some(value) = self.common.get_for_query(attr) {
+		if let Some(value) = self
+			.common
+			.get_for_query(attr)
+			.or_else(|| return self.common_hg.get_for_query(attr))
+		{
 			return Some(value);
 		}
 
@@ -595,7 +583,11 @@ where
 	}
 
 	fn attr(&mut self, attr: Attribute, value: AttrValue) {
-		if let Some(value) = self.common.set(attr, value) {
+		if let Some(value) = self
+			.common
+			.set(attr, value)
+			.and_then(|value| return self.common_hg.set(attr, value))
+		{
 			match attr {
 				Attribute::Custom(attr::HORIZ_SCROLL_STEP) => {
 					let val = NonZeroUsize::new(value.unwrap_length()).unwrap();

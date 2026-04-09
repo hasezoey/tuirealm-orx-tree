@@ -11,6 +11,7 @@ use tuirealm::{
 	ratatui::{
 		buffer::Buffer,
 		layout::Rect,
+		text::Line,
 		widgets::{
 			Block,
 			StatefulWidget,
@@ -60,9 +61,7 @@ pub struct TreeWidget<'a, V: NodeValue> {
 	/// The Highlight Style for the currently highlighted element
 	hg_style:         Style,
 	/// The Highlight symbol for the currently highlighted element
-	hg_str:           Option<&'a str>,
-	/// Custom Highlight symbol style
-	hg_str_style:     Option<Style>,
+	hg_str:           Option<Line<'a>>,
 	/// The Highlight symbol draw width
 	hg_width:         u16,
 	/// The Highlight symbol draw behavior
@@ -89,7 +88,6 @@ where
 			main_style: Style::default(),
 			hg_style: Style::default(),
 			hg_str: None,
-			hg_str_style: None,
 			hg_width: DEFAULT_HG_WIDTH,
 			hg_draw_behavior: HighlightDrawBehavior::default(),
 			indent_size: DEFAULT_INDENT,
@@ -121,17 +119,8 @@ where
 	}
 
 	/// Set the Highlight Symbol to draw in addition to the line itself.
-	pub fn hg_str(mut self, val: &'a str) -> Self {
+	pub fn hg_str(mut self, val: Line<'a>) -> Self {
 		self.hg_str = Some(val);
-
-		return self;
-	}
-
-	/// Set a custom style to use for the Highlight symbol area.
-	///
-	/// By default the common style is used for that area.
-	pub fn hg_str_style(mut self, style: Style) -> Self {
-		self.hg_str_style = Some(style);
 
 		return self;
 	}
@@ -255,19 +244,14 @@ where
 			let is_selected = state.is_selected(&node.idx());
 			let use_style = if is_selected { self.hg_style } else { self.main_style };
 
-			if is_selected && let Some(hg_symbol) = self.hg_str {
-				let hg_sym_style = if let Some(style) = self.hg_str_style {
-					style
-				} else {
-					use_style
-				};
+			if is_selected && let Some(hg_symbol) = &self.hg_str {
 				Indicator::render(
 					hg_symbol,
 					self.hg_width,
 					&mut display_offset_horiz,
 					&mut line_area,
 					buf,
-					Some(hg_sym_style),
+					Some(use_style),
 				);
 				// in both "CombineIndent" and "Static" cases, we want to remove it from the indent again.
 				indent = indent.saturating_sub(usize::from(self.hg_width));
@@ -375,14 +359,14 @@ impl Indicator {
 	///
 	/// This will modify the given display offset and available area to remove the space this has been drawn on.
 	///
-	/// Note that this function will [`Clear`] the used area, so the style, unless set, may be reset.
-	///
 	/// Limitation: this implementation expects only a single drawable character,
 	/// if more are provided, they will only be drawn in full or not at all.
 	///
+	/// Note that `style` will be applied to the whole indicator area (symbol or empty). The symbol's style will be applied on top.
+	///
 	/// Example: if `123` is input as a symbol and `4` as the length, then it will only display `123 ` or `   `(offset 1), never `23 `.
 	pub fn render(
-		symbol: &str,
+		symbol: &Line<'_>,
 		draw_length: u16,
 		display_offset_horiz: &mut usize,
 		available_area: &mut Rect,
@@ -420,9 +404,9 @@ impl Indicator {
 #[derive(Debug, Clone)]
 pub struct OrIndicators<'a> {
 	/// The indicator text to draw for the "true" state
-	on_true:         &'a str,
+	on_true:         Line<'a>,
 	/// The indicator text to draw for the "false" state
-	on_false:        &'a str,
+	on_false:        Line<'a>,
 	/// The cell length to allocate for the symbols
 	allocate_length: u16,
 	/// The Style to use for the indicator area
@@ -432,8 +416,8 @@ pub struct OrIndicators<'a> {
 impl Default for OrIndicators<'static> {
 	fn default() -> Self {
 		return Self {
-			on_true:         CHILD_OPENED_INDICATOR,
-			on_false:        CHILD_CLOSED_INDICATOR,
+			on_true:         Line::from(CHILD_OPENED_INDICATOR),
+			on_false:        Line::from(CHILD_CLOSED_INDICATOR),
 			allocate_length: CHILD_INDICATOR_LENGTH,
 			style:           None,
 		};
@@ -446,7 +430,7 @@ impl<'a> OrIndicators<'a> {
 	/// Note: it should be ensured that `open` and `closed` are fitting within `length`.
 	/// This struct does not do grapheme / drawable length checking.
 	#[inline]
-	pub const fn new(open: &'a str, closed: &'a str, length: u16) -> Self {
+	pub const fn new(open: Line<'a>, closed: Line<'a>, length: u16) -> Self {
 		return Self {
 			on_true:         open,
 			on_false:        closed,
@@ -455,7 +439,7 @@ impl<'a> OrIndicators<'a> {
 		};
 	}
 
-	/// Set the style to use for the indicator area.
+	/// Set the style to use for the indicator area. (empty space included)
 	#[must_use]
 	pub const fn with_style(mut self, style: Style) -> Self {
 		self.style = Some(style);
@@ -465,7 +449,7 @@ impl<'a> OrIndicators<'a> {
 
 	/// Render the symbol based on `open` in the given `available_area`, but modify it to remove the used area.
 	pub fn render(&self, display_offset_horiz: &mut usize, available_area: &mut Rect, buf: &mut Buffer, state: bool) {
-		let symbol = if state { self.on_true } else { self.on_false };
+		let symbol = if state { &self.on_true } else { &self.on_false };
 		Indicator::render(
 			symbol,
 			self.allocate_length,

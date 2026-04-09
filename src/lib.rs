@@ -84,7 +84,6 @@
 //! ```
 
 pub mod component;
-mod props_ext;
 mod state;
 pub mod types;
 pub mod widget;

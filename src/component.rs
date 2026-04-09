@@ -3,6 +3,7 @@
 use std::num::NonZeroUsize;
 
 use orx_tree::NodeRef;
+use tui_realm_stdlib::prop_ext::CommonProps;
 use tuirealm::{
 	command::{
 		Cmd,
@@ -20,6 +21,7 @@ use tuirealm::{
 		Props,
 		QueryResult,
 		Style,
+		TextModifiers,
 		Title,
 	},
 	ratatui::{
@@ -37,7 +39,6 @@ pub use crate::state::{
 	TreeViewState,
 };
 use crate::{
-	props_ext::PropsExt,
 	types::{
 		Node,
 		NodeIdx,
@@ -86,9 +87,10 @@ pub mod cmd {
 #[derive(Debug, Clone)]
 #[must_use]
 pub struct TreeView<V: NodeValue> {
-	props: Props,
-	tree:  Tree<V>,
-	state: TreeViewState<V>,
+	props:  Props,
+	common: CommonProps,
+	tree:   Tree<V>,
+	state:  TreeViewState<V>,
 }
 
 impl<V> Default for TreeView<V>
@@ -97,9 +99,10 @@ where
 {
 	fn default() -> Self {
 		return Self {
-			props: Props::default(),
-			tree:  Tree::default(),
-			state: TreeViewState::default(),
+			props:  Props::default(),
+			common: CommonProps::default(),
+			tree:   Tree::default(),
+			state:  TreeViewState::default(),
 		};
 	}
 }
@@ -149,10 +152,41 @@ where
 		return self;
 	}
 
+	/// Set the main text modifiers. This may get overwritten by individual text styles.
+	pub fn modifiers(mut self, m: TextModifiers) -> Self {
+		self.attr(Attribute::TextProps, AttrValue::TextModifiers(m));
+		return self
+	}
+
+	/// Set the main style. This may get overwritten by individual text styles.
+	///
+	/// This option will overwrite any previous [`foreground`](Self::foreground), [`background`](Self::background) and [`modifiers`](Self::modifiers)!
+	pub fn style(mut self, style: Style) -> Self {
+		self.attr(Attribute::Style, AttrValue::Style(style));
+		return self
+	}
+
+	/// Set a custom style to use for the block if the component is not focused.
+	///
+	/// If unset, the common style is used.
+	///
+	/// Note that style set in [`broder`](Self::border) will be overwritten when unfocused.
+	pub fn inactive_style(mut self, style: Style) -> Self {
+		self.attr(Attribute::UnfocusedBorderStyle, AttrValue::Style(style));
+
+		return self;
+	}
+
 	/// Set the border style and color that surrounds the tree.
 	pub fn border(mut self, border: Borders) -> Self {
 		self.attr(Attribute::Borders, AttrValue::Borders(border));
 
+		return self;
+	}
+
+	/// Set a title for the tree in the border.
+	pub fn title<T: Into<Title>>(mut self, title: T) -> Self {
+		self.attr(Attribute::Title, AttrValue::Title(title.into()));
 		return self;
 	}
 
@@ -173,12 +207,6 @@ where
 	pub fn indent_style(mut self, style: Style) -> Self {
 		self.attr(Attribute::Custom(attr::INDENT_STYLE), AttrValue::Style(style));
 
-		return self;
-	}
-
-	/// Set a title for the tree in the border.
-	pub fn title<T: Into<Title>>(mut self, title: T) -> Self {
-		self.attr(Attribute::Title, AttrValue::Title(title.into()));
 		return self;
 	}
 
@@ -274,17 +302,6 @@ where
 	/// Default: [`PREVIEW_DISTANCE_DEFAULT`]
 	pub fn preview_distance_vertical(mut self, distance: u16) -> Self {
 		self.state.set_preview_distance_horizontal(distance);
-
-		return self;
-	}
-
-	/// Set a custom style to use for the block if the component is not focused.
-	///
-	/// If unset, the common style is used.
-	///
-	/// Note that style set in [`broder`](Self::border) will be overwritten when unfocused.
-	pub fn inactive_style(mut self, style: Style) -> Self {
-		self.attr(Attribute::UnfocusedBorderStyle, AttrValue::Style(style));
 
 		return self;
 	}
@@ -496,44 +513,15 @@ where
 	V: NodeValue,
 {
 	fn view(&mut self, frame: &mut Frame<'_>, area: Rect) {
-		if !self.props.should_display() {
+		if !self.common.display {
 			return;
 		}
 
-		let foreground = self
-			.props
-			.get(Attribute::Foreground)
-			.and_then(AttrValue::as_color)
-			.unwrap_or(Color::Reset);
-		let background = self
-			.props
-			.get(Attribute::Background)
-			.and_then(AttrValue::as_color)
-			.unwrap_or(Color::Reset);
-
-		let style = Style::default().fg(foreground).bg(background);
-
-		let title = self.props.get(Attribute::Title).and_then(AttrValue::as_title);
 		let empty_tree_text = self
 			.props
 			.get(Attribute::Custom(attr::EMPTY_TREE))
 			.and_then(AttrValue::as_string);
 
-		let borders = self
-			.props
-			.get(Attribute::Borders)
-			.and_then(AttrValue::as_borders)
-			.unwrap_or_default();
-		let focus = self
-			.props
-			.get(Attribute::Focus)
-			.and_then(AttrValue::as_flag)
-			.unwrap_or_default();
-		let inactive_style = self
-			.props
-			.get(Attribute::UnfocusedBorderStyle)
-			.and_then(AttrValue::as_style)
-			.unwrap_or(style);
 		let hg_style = self.props.get(Attribute::HighlightStyle).and_then(AttrValue::as_style);
 		// TODO: change to line
 		let hg_str = self.props.get(Attribute::HighlightedStr).and_then(AttrValue::as_string);
@@ -562,15 +550,15 @@ where
 			.and_then(AttrValue::as_length)
 			.unwrap_or(DEFAULT_INDENT);
 
-		let block = tui_realm_stdlib::utils::get_block(borders, title, focus, Some(inactive_style));
-
 		let mut widget = TreeWidget::new(&self.tree)
-			.block(block)
-			.style(style)
+			.style(self.common.style)
 			.hg_draw_behavior(hg_behavior)
 			.hg_width(hg_width)
 			.indent(indent);
 
+		if let Some(block) = self.common.get_block() {
+			widget = widget.block(block);
+		}
 		if let Some(hg_style) = hg_style {
 			widget = widget.hg_style(hg_style);
 		}
@@ -591,6 +579,10 @@ where
 	}
 
 	fn query(&self, attr: Attribute) -> Option<QueryResult<'_>> {
+		if let Some(value) = self.common.get_for_query(attr) {
+			return Some(value);
+		}
+
 		return match attr {
 			Attribute::Custom(attr::HORIZ_SCROLL_STEP) => {
 				return Some(AttrValueRef::Length(self.state.get_horizontal_scroll_step().get()).into());
@@ -603,17 +595,19 @@ where
 	}
 
 	fn attr(&mut self, attr: Attribute, value: AttrValue) {
-		match attr {
-			Attribute::Custom(attr::HORIZ_SCROLL_STEP) => {
-				let val = NonZeroUsize::new(value.unwrap_length()).unwrap();
-				self.state.set_horizontal_scroll_step(val);
-			},
-			Attribute::Custom(attr::VERT_SCROLL_STEP) => {
-				let val = NonZeroUsize::new(value.unwrap_length()).unwrap();
-				self.state.set_vertical_scroll_step(val);
-			},
-			_ => self.props.set(attr, value),
-		};
+		if let Some(value) = self.common.set(attr, value) {
+			match attr {
+				Attribute::Custom(attr::HORIZ_SCROLL_STEP) => {
+					let val = NonZeroUsize::new(value.unwrap_length()).unwrap();
+					self.state.set_horizontal_scroll_step(val);
+				},
+				Attribute::Custom(attr::VERT_SCROLL_STEP) => {
+					let val = NonZeroUsize::new(value.unwrap_length()).unwrap();
+					self.state.set_vertical_scroll_step(val);
+				},
+				_ => self.props.set(attr, value),
+			};
+		}
 	}
 
 	fn state(&self) -> State {

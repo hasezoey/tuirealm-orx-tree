@@ -410,12 +410,8 @@ where
 
 		let mut next_node = self.tree.get_node(nodeidx)?;
 
-		loop {
-			// we dont want to add the root node into the path
-			let Some(parent) = next_node.parent() else {
-				break;
-			};
-
+		// we dont want to add the root node into the path
+		while let Some(parent) = next_node.parent() {
 			path.push(next_node.sibling_idx());
 
 			next_node = parent;

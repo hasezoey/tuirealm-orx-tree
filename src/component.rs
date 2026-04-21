@@ -223,6 +223,13 @@ where
 		return self;
 	}
 
+	/// Set a custom highlight style that is patched on-top of the highlight style when unfocused.
+	pub fn highlight_style_inactive(mut self, s: Style) -> Self {
+		self.attr(Attribute::HighlightStyleUnfocused, AttrValue::Style(s));
+
+		return self;
+	}
+
 	/// Set the current curser selection symbol.
 	pub fn highlight_symbol<S: Into<LineStatic>>(mut self, s: S) -> Self {
 		self.attr(Attribute::HighlightedStr, AttrValue::TextLine(s.into()));
@@ -537,11 +544,12 @@ where
 			.style(self.common.style)
 			.hg_draw_behavior(hg_behavior)
 			.hg_width(hg_width)
+			.hg_style(
+				self.common_hg
+					.get_style_focus(self.common.style, self.common.is_active()),
+			)
 			.indent(indent);
 
-		if self.common.is_active() {
-			widget = widget.hg_style(self.common_hg.get_style(self.common.style));
-		}
 		if let Some(symbol) = self.common_hg.get_symbol() {
 			widget = widget.hg_str(symbol);
 		}

@@ -959,8 +959,9 @@ dependencies = [
 
 [[package]]
 name = "tui-realm-stdlib"
-version = "4.0.0"
-source = "git+https://github.com/hasezoey/tui-realm.git?rev=9c3f325efac7cb0e1dd9c1db3cd91e4dfaa8dbec#9c3f325efac7cb0e1dd9c1db3cd91e4dfaa8dbec"
+version = "4.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1d2fd2ea3ea191daa2e22773d7dee9c7d6a33efc95204afcd319c60da57ee13b"
 dependencies = [
  "textwrap",
  "tuirealm",
@@ -969,8 +970,9 @@ dependencies = [
 
 [[package]]
 name = "tuirealm"
-version = "4.0.0"
-source = "git+https://github.com/hasezoey/tui-realm.git?rev=9c3f325efac7cb0e1dd9c1db3cd91e4dfaa8dbec#9c3f325efac7cb0e1dd9c1db3cd91e4dfaa8dbec"
+version = "4.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7f7d70af0dff16882cfeb423cbec374055e941ac25b205a31f9f5607e831ebac"
 dependencies = [
  "async-trait",
  "bitflags",
@@ -998,8 +1000,9 @@ dependencies = [
 
 [[package]]
 name = "tuirealm_derive"
-version = "4.0.0"
-source = "git+https://github.com/hasezoey/tui-realm.git?rev=9c3f325efac7cb0e1dd9c1db3cd91e4dfaa8dbec#9c3f325efac7cb0e1dd9c1db3cd91e4dfaa8dbec"
+version = "4.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a464b5edbcbec3ed4890ddb9efabb3b236f5c921a58a1f9d390854ee20bc5c2b"
 dependencies = [
  "proc-macro2",
  "quote",

@@ -10,14 +10,14 @@ description = "Tree Component for TUIRealm with orx-tree"
 readme = "README.md"
 
 [dependencies]
-tuirealm = { git = "https://github.com/hasezoey/tui-realm.git", rev = "9c3f325efac7cb0e1dd9c1db3cd91e4dfaa8dbec", default-features = false, features = [
+tuirealm = { version = "4.1.0", default-features = false, features = [
 	"derive",
 ] }
-tui-realm-stdlib = { git = "https://github.com/hasezoey/tui-realm.git", rev = "9c3f325efac7cb0e1dd9c1db3cd91e4dfaa8dbec" }
+tui-realm-stdlib = { version = "4.1.0" }
 orx-tree = { version = "2.2", default-features = false, features = [] }
 
 [dev-dependencies]
-tuirealm = { git = "https://github.com/hasezoey/tui-realm.git", rev = "9c3f325efac7cb0e1dd9c1db3cd91e4dfaa8dbec", default-features = false, features = [
+tuirealm = { version = "4.1.0", default-features = false, features = [
 	"crossterm",
 	"derive",
 	"async-ports",
